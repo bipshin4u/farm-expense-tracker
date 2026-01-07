@@ -3,72 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyster Farm Cloud Sync</title>
+    <title>Oyster Farm Cloud Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* ... keeping your existing styles ... */
-        :root { --straw: #f1c40f; --spawn: #9b59b6; --chem: #e67e22; --punnet: #3498db; --worker: #1abc9c; --yield: #2ecc71; --success: #27ae60; --danger: #e74c3c; --dark: #2c3e50; }
-        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
+        :root {
+            --straw: #f1c40f; --spawn: #9b59b6; --chem: #e67e22; --punnet: #3498db;
+            --worker: #1abc9c; --utility: #95a5a6; --misc: #34495e; --yield: #2ecc71; 
+            --success: #27ae60; --danger: #e74c3c; --dark: #2c3e50;
+        }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .sync-status { font-size: 10px; text-align: center; color: #27ae60; margin-bottom: 10px; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .sync-status { font-size: 11px; text-align: center; color: #27ae60; margin-bottom: 10px; font-weight: bold; }
+        h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .full { grid-column: span 2; text-align: center; font-weight: bold; }
-        .val { font-size: 1.2rem; display: block; }
+        .full { grid-column: span 2; text-align: center; }
+        .val { font-size: 1.4rem; font-weight: bold; display: block; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .btn-sale { background: var(--success); }
+        .btn-yield { background: var(--yield); }
+        .table-container { overflow-x: auto; max-height: 300px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .tag { padding: 2px 6px; border-radius: 4px; color: white; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .Straw { background: var(--straw); color: black; } .Spawn { background: var(--spawn); } 
+        .Chemicals { background: var(--chem); } .Worker { background: var(--worker); }
+        .del-btn { background: none; color: #e74c3c; width: auto; padding: 5px; margin: 0; font-size: 18px; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align:center;">🍄 Farm Cloud Sync</h1>
-    <div class="sync-status" id="status">✓ Connected to Cloud</div>
+    <h1 style="text-align:center; margin-bottom:5px;">🍄 Farm Cloud Pro</h1>
+    <div id="status" class="sync-status">✓ System Live</div>
 
     <div class="card grid">
-        <div class="full">Net Profit/Loss: <span id="net-total">₹0</span></div>
-        <div>Sales: <span id="sales-total" style="color:var(--success)">₹0</span></div>
-        <div>Expenses: <span id="exp-total" style="color:var(--danger)">₹0</span></div>
+        <div class="full"><small>Net Profit/Loss</small><div id="net-total" class="val">₹0</div></div>
+        <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
+        <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
     </div>
 
-    <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6_K43UQSHDHhcHGVO4vZ1M71bpJIrtYHAO7MvaD5BVlSuTIfL4W0jSUWJNqDN4QqV/exec";
-    </script>
+    <div class="card"><canvas id="financeChart"></canvas></div>
 
     <div class="card">
         <h2>Add Expense</h2>
         <input type="date" id="e-date">
         <select id="e-cat">
-            <option value="Straw">Straw</option>
-            <option value="Spawn">Spawn</option>
-            <option value="Bavistine">Bavistine</option>
-            <option value="Formalin">Formalin</option>
-            <option value="Worker">Pallavi Mavshi</option>
-            <option value="Worker">Bhabhi</option>
-            <option value="Misc">Miscellaneous</option>
+            <optgroup label="Raw Materials">
+                <option value="Straw">Straw</option>
+                <option value="Spawn">Spawn</option>
+                <option value="Chemicals">Bavistine</option>
+                <option value="Chemicals">Formalin</option>
+            </optgroup>
+            <optgroup label="Worker Pay">
+                <option value="Worker">Pallavi Mavshi</option>
+                <option value="Worker">Bhabhi</option>
+            </optgroup>
+            <optgroup label="Other">
+                <option value="Packaging">Plastic Punnets</option>
+                <option value="Utility">Electricity/Water</option>
+                <option value="Misc">Miscellaneous</option>
+            </optgroup>
         </select>
         <input type="number" id="e-amt" placeholder="Amount (₹)">
         <button onclick="addData('exp')">Save & Sync</button>
     </div>
 
+    <div class="card">
+        <h2>Add Sale</h2>
+        <input type="date" id="s-date">
+        <input type="text" id="s-cust" placeholder="Customer Name">
+        <input type="number" id="s-qty" placeholder="Punnets Sold">
+        <input type="number" id="s-price" placeholder="Rate (₹)">
+        <button class="btn-sale" onclick="addData('sale')">Save Sale</button>
+    </div>
+
+    <div class="card">
+        <h2>Log Harvest</h2>
+        <input type="date" id="y-date">
+        <input type="number" step="0.1" id="y-weight" placeholder="Weight (kg)">
+        <button class="btn-yield" onclick="addData('yield')">Save Harvest</button>
+    </div>
+
+    <div class="card">
+        <h2>Recent History</h2>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>Date</th><th>Detail</th><th>Value</th><th></th></tr></thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
+    </div>
+
     <script>
+        // PASTE YOUR GOOGLE APP SCRIPT URL HERE
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6_K43UQSHDHhcHGVO4vZ1M71bpJIrtYHAO7MvaD5BVlSuTIfL4W0jSUWJNqDN4QqV/exec";
+
         let db = JSON.parse(localStorage.getItem('mushroom_pro_data')) || { exp: [], sales: [], yield: [] };
+        let myChart;
 
         async function syncToCloud(payload) {
-            document.getElementById('status').innerText = "⌛ Syncing...";
+            document.getElementById('status').innerText = "⌛ Syncing to Google Sheets...";
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     body: JSON.stringify(payload)
                 });
-                document.getElementById('status').innerText = "✓ Cloud Updated";
+                document.getElementById('status').innerText = "✓ Cloud Updated Successfully";
             } catch (e) {
-                document.getElementById('status').innerText = "⚠ Sync Failed (Offline)";
+                document.getElementById('status').innerText = "⚠ Sync Failed (Saved Locally)";
             }
         }
 
         function addData(type) {
             const today = new Date().toISOString().split('T')[0];
-            let payload = { type: type, date: "", details: "", amt: 0 };
+            const id = Date.now();
+            let payload = { id, type, date: "", details: "", amt: 0 };
 
             if (type === 'exp') {
                 const sel = document.getElementById('e-cat');
@@ -76,13 +126,65 @@
                 payload.details = sel.options[sel.selectedIndex].text;
                 payload.amt = parseFloat(document.getElementById('e-amt').value) || 0;
                 db.exp.unshift(payload);
+            } else if (type === 'sale') {
+                const qty = parseFloat(document.getElementById('s-qty').value) || 0;
+                const pr = parseFloat(document.getElementById('s-price').value) || 0;
+                payload.date = document.getElementById('s-date').value || today;
+                payload.details = document.getElementById('s-cust').value || 'Retail';
+                payload.amt = qty * pr;
+                db.sales.unshift(payload);
+            } else if (type === 'yield') {
+                payload.date = document.getElementById('y-date').value || today;
+                payload.details = "Harvest";
+                payload.weight = parseFloat(document.getElementById('y-weight').value) || 0;
+                db.yield.unshift(payload);
             }
-            // ... (Logic for sales/yield similar to above)
 
             localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
-            syncToCloud(payload); // Send to Google Sheets
-            location.reload();
+            syncToCloud(payload);
+            saveAndRender();
+            ['e-amt', 's-cust', 's-qty', 's-price', 'y-weight'].forEach(el => { if(document.getElementById(el)) document.getElementById(el).value = ''; });
         }
+
+        function deleteItem(type, id) {
+            if(confirm("Delete locally? (Note: Cloud entry remains in Sheet)")) {
+                db[type] = db[type].filter(i => i.id !== id);
+                saveAndRender();
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
+            const body = document.getElementById('history-body');
+            body.innerHTML = '';
+            let te = 0, ts = 0;
+            
+            db.exp.forEach(i => { te += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><span class="tag ${i.cat || 'Worker'}">${i.details}</span></td><td style="color:var(--danger)">-₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('exp', ${i.id})">×</button></td></tr>`; });
+            db.sales.forEach(i => { ts += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><b>${i.details}</b></td><td style="color:var(--success)">+₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('sales', ${i.id})">×</button></td></tr>`; });
+            db.yield.forEach(i => { body.innerHTML += `<tr style="background:#f9fff9"><td>${i.date}</td><td>🍄 Harvest</td><td>${i.weight}kg</td><td><button class="del-btn" onclick="deleteItem('yield', ${i.id})">×</button></td></tr>`; });
+
+            document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
+            document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
+            document.getElementById('net-total').innerText = '₹' + (ts - te).toLocaleString('en-IN');
+            updateChart();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            const dates = [...new Set([...db.exp, ...db.sales].map(d => d.date))].sort();
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        { label: 'Sales', data: dates.map(d => db.sales.filter(s => s.date === d).reduce((a,b)=>a+b.amt,0)), borderColor: '#27ae60', tension: 0.3 },
+                        { label: 'Expenses', data: dates.map(d => db.exp.filter(e => e.date === d).reduce((a,b)=>a+b.amt,0)), borderColor: '#e74c3c', tension: 0.3 }
+                    ]
+                }
+            });
+        }
+        saveAndRender();
     </script>
 </body>
 </html>

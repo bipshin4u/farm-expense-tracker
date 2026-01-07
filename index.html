@@ -97,7 +97,33 @@
     <script>
         // PASTE YOUR GOOGLE APP SCRIPT URL HERE
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6_K43UQSHDHhcHGVO4vZ1M71bpJIrtYHAO7MvaD5BVlSuTIfL4W0jSUWJNqDN4QqV/exec";
-
+    
+        // This runs as soon as you open the website
+        window.onload = loadCloudData;
+    
+        async function loadCloudData() {
+            document.getElementById('status').innerText = "⌛ Downloading farm data...";
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const cloudData = await response.json();
+                
+                // Organize cloud data back into our local format
+                let newDb = { exp: [], sales: [], yield: [] };
+                cloudData.forEach(item => {
+                    if (item.type === 'exp') newDb.exp.unshift(item);
+                    else if (item.type === 'sale') newDb.sales.unshift(item);
+                    else if (item.type === 'yield') newDb.yield.unshift(item);
+                });
+                
+                db = newDb;
+                saveAndRender(); // Update the charts and tables
+                document.getElementById('status').innerText = "✓ All Phones Synced";
+            } catch (e) {
+                document.getElementById('status').innerText = "⚠ Using Offline Data";
+            }
+        }
+    
+        // ... (Keep the rest of your addData, deleteItem, and Chart functions) ...
         let db = JSON.parse(localStorage.getItem('mushroom_pro_data')) || { exp: [], sales: [], yield: [] };
         let myChart;
 

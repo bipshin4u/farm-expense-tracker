@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyster Farm Pro Manager</title>
+    <title>Oyster Farm Manager - INR</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -26,6 +26,10 @@
         .Straw { background: var(--straw); color: black; } .Spawn { background: var(--spawn); } 
         .Chemicals { background: var(--chem); } .Packaging { background: var(--punnet); }
         .Worker { background: var(--worker); } .Utility { background: var(--utility); } .Misc { background: var(--misc); }
+        .table-container { overflow-x: auto; max-height: 400px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        .del-btn { background: none; color: #e74c3c; width: auto; padding: 5px; margin: 0; font-size: 18px; }
     </style>
 </head>
 <body>
@@ -35,11 +39,16 @@
 
     <div class="card grid">
         <div class="full"><small>Net Profit/Loss</small><div id="net-total" class="val">₹0</div></div>
-        <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
-        <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
+        <div><small>Total Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
+        <div><small>Total Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
     </div>
 
-    <div class="card"><h2>Add Expense</h2>
+    <div class="card">
+        <canvas id="financeChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Add Expense</h2>
         <input type="date" id="e-date">
         <select id="e-cat">
             <optgroup label="Raw Materials">
@@ -47,11 +56,11 @@
                 <option value="Spawn">Spawn</option>
                 <option value="Chemicals">Formalin/Bavistine</option>
             </optgroup>
-            <optgroup label="Labor">
-                <option value="Worker">Pallavi Mavshi (Pay)</option>
-                <option value="Worker">Bhabhi (Pay)</option>
+            <optgroup label="Worker Pay">
+                <option value="Worker">Pallavi Mavshi</option>
+                <option value="Worker">Bhabhi</option>
             </optgroup>
-            <optgroup label="Other Costs">
+            <optgroup label="Other">
                 <option value="Packaging">Plastic Punnets</option>
                 <option value="Utility">Electricity/Water</option>
                 <option value="Utility">Transport</option>
@@ -62,43 +71,113 @@
         <button onclick="addData('exp')">Save Expense</button>
     </div>
 
-    <div class="card"><h2>Add Sale</h2>
+    <div class="card">
+        <h2>Add Sale</h2>
         <input type="date" id="s-date">
         <input type="text" id="s-cust" placeholder="Customer Name">
         <input type="number" id="s-qty" placeholder="Punnets Sold">
-        <input type="number" id="s-price" placeholder="Rate (₹)">
+        <input type="number" id="s-price" placeholder="Rate per Punnet (₹)">
         <button class="btn-sale" onclick="addData('sale')">Save Sale</button>
     </div>
 
-    <div class="card"><h2>Log Harvest</h2>
+    <div class="card">
+        <h2>Log Harvest</h2>
         <input type="date" id="y-date">
         <input type="number" step="0.1" id="y-weight" placeholder="Weight (kg)">
         <button class="btn-yield" onclick="addData('yield')">Save Harvest</button>
     </div>
 
+    <div class="card">
+        <h2>History (Recent First)</h2>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>Date</th><th>Detail</th><th>Value</th><th></th></tr></thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
+        <button style="background:#1d6f42; margin-top:15px;" onclick="downloadCSV()">📊 Export to Excel</button>
+        <button onclick="clearData()" style="background:var(--danger); margin-top:10px; font-size:11px; opacity:0.6;">Reset All</button>
+    </div>
+
     <script>
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         let db = JSON.parse(localStorage.getItem('mushroom_pro_data')) || { exp: [], sales: [], yield: [] };
+        let myChart;
+
         function addData(type) {
             const today = new Date().toISOString().split('T')[0];
+            const id = Date.now(); // Unique ID for deleting
             if (type === 'exp') {
                 const sel = document.getElementById('e-cat');
-                db.exp.push({ date: document.getElementById('e-date').value || today, cat: sel.value, details: sel.options[sel.selectedIndex].text, amt: parseFloat(document.getElementById('e-amt').value) || 0 });
+                db.exp.unshift({ id, date: document.getElementById('e-date').value || today, cat: sel.value, details: sel.options[sel.selectedIndex].text, amt: parseFloat(document.getElementById('e-amt').value) || 0 });
             } else if (type === 'sale') {
                 const qty = parseFloat(document.getElementById('s-qty').value) || 0;
                 const pr = parseFloat(document.getElementById('s-price').value) || 0;
-                db.sales.push({ date: document.getElementById('s-date').value || today, cust: document.getElementById('s-cust').value || 'Retail', amt: qty * pr });
+                db.sales.unshift({ id, date: document.getElementById('s-date').value || today, cust: document.getElementById('s-cust').value || 'Retail', amt: qty * pr });
             } else if (type === 'yield') {
-                db.yield.push({ date: document.getElementById('y-date').value || today, weight: parseFloat(document.getElementById('y-weight').value) || 0 });
+                db.yield.unshift({ id, date: document.getElementById('y-date').value || today, weight: parseFloat(document.getElementById('y-weight').value) || 0 });
             }
-            localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
-            location.reload();
+            saveAndRender();
+            ['e-amt', 's-cust', 's-qty', 's-price', 'y-weight'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
         }
-        // Simplified dashboard display logic
-        let te = db.exp.reduce((a,b)=>a+b.amt,0), ts = db.sales.reduce((a,b)=>a+b.amt,0);
-        document.getElementById('exp-total').innerText = '₹'+te;
-        document.getElementById('sales-total').innerText = '₹'+ts;
-        document.getElementById('net-total').innerText = '₹'+(ts-te);
+
+        function deleteItem(type, id) {
+            if(confirm("Delete this entry?")) {
+                db[type] = db[type].filter(item => item.id !== id);
+                saveAndRender();
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
+            const body = document.getElementById('history-body');
+            body.innerHTML = '';
+            
+            let te = 0, ts = 0;
+            
+            // Render History (Combined and Sorted)
+            db.exp.forEach(i => { te += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><span class="tag ${i.cat}">${i.details}</span></td><td style="color:var(--danger)">-₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('exp', ${i.id})">×</button></td></tr>`; });
+            db.sales.forEach(i => { ts += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><b>${i.cust}</b></td><td style="color:var(--success)">+₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('sales', ${i.id})">×</button></td></tr>`; });
+            db.yield.forEach(i => { body.innerHTML += `<tr style="background:#f9fff9"><td>${i.date}</td><td>🍄 Harvest</td><td>${i.weight}kg</td><td><button class="del-btn" onclick="deleteItem('yield', ${i.id})">×</button></td></tr>`; });
+
+            document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
+            document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
+            document.getElementById('net-total').innerText = '₹' + (ts - te).toLocaleString('en-IN');
+            
+            updateChart();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            const dates = [...new Set([...db.exp, ...db.sales].map(d => d.date))].sort();
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        { label: 'Sales (₹)', data: dates.map(d => db.sales.filter(s => s.date === d).reduce((a,b)=>a+b.amt,0)), borderColor: '#27ae60', tension: 0.3 },
+                        { label: 'Expenses (₹)', data: dates.map(d => db.exp.filter(e => e.date === d).reduce((a,b)=>a+b.amt,0)), borderColor: '#e74c3c', tension: 0.3 }
+                    ]
+                }
+            });
+        }
+
+        function downloadCSV() {
+            let csv = "Date,Type,Details,Amount\n";
+            db.exp.forEach(e => csv += `${e.date},Expense,${e.details},-${e.amt}\n`);
+            db.sales.forEach(s => csv += `${s.date},Sale,${s.cust},${s.amt}\n`);
+            db.yield.forEach(y => csv += `${y.date},Harvest,Yield,${y.weight}kg\n`);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mushroom_farm_data.csv';
+            a.click();
+        }
+
+        function clearData() { if(confirm("Clear all data?")) { db = {exp:[], sales:[], yield:[]}; saveAndRender(); } }
+        saveAndRender();
     </script>
 </body>
 </html>

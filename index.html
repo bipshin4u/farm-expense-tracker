@@ -43,9 +43,7 @@
         <div><small>Total Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
     </div>
 
-    <div class="card">
-        <canvas id="financeChart"></canvas>
-    </div>
+    <div class="card"><canvas id="financeChart"></canvas></div>
 
     <div class="card">
         <h2>Add Expense</h2>
@@ -54,7 +52,8 @@
             <optgroup label="Raw Materials">
                 <option value="Straw">Straw</option>
                 <option value="Spawn">Spawn</option>
-                <option value="Chemicals">Formalin/Bavistine</option>
+                <option value="Chemicals">Formalin</option>
+                <option value="Chemicals">Bavistine</option>
             </optgroup>
             <optgroup label="Worker Pay">
                 <option value="Worker">Pallavi Mavshi</option>
@@ -88,7 +87,7 @@
     </div>
 
     <div class="card">
-        <h2>History (Recent First)</h2>
+        <h2>History</h2>
         <div class="table-container">
             <table>
                 <thead><tr><th>Date</th><th>Detail</th><th>Value</th><th></th></tr></thead>
@@ -106,7 +105,7 @@
 
         function addData(type) {
             const today = new Date().toISOString().split('T')[0];
-            const id = Date.now(); // Unique ID for deleting
+            const id = Date.now();
             if (type === 'exp') {
                 const sel = document.getElementById('e-cat');
                 db.exp.unshift({ id, date: document.getElementById('e-date').value || today, cat: sel.value, details: sel.options[sel.selectedIndex].text, amt: parseFloat(document.getElementById('e-amt').value) || 0 });
@@ -132,10 +131,8 @@
             localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
             const body = document.getElementById('history-body');
             body.innerHTML = '';
-            
             let te = 0, ts = 0;
             
-            // Render History (Combined and Sorted)
             db.exp.forEach(i => { te += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><span class="tag ${i.cat}">${i.details}</span></td><td style="color:var(--danger)">-₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('exp', ${i.id})">×</button></td></tr>`; });
             db.sales.forEach(i => { ts += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><b>${i.cust}</b></td><td style="color:var(--success)">+₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('sales', ${i.id})">×</button></td></tr>`; });
             db.yield.forEach(i => { body.innerHTML += `<tr style="background:#f9fff9"><td>${i.date}</td><td>🍄 Harvest</td><td>${i.weight}kg</td><td><button class="del-btn" onclick="deleteItem('yield', ${i.id})">×</button></td></tr>`; });
@@ -143,7 +140,6 @@
             document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
             document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
             document.getElementById('net-total').innerText = '₹' + (ts - te).toLocaleString('en-IN');
-            
             updateChart();
         }
 
@@ -171,9 +167,7 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = 'mushroom_farm_data.csv';
-            a.click();
+            a.href = url; a.download = 'mushroom_farm_data.csv'; a.click();
         }
 
         function clearData() { if(confirm("Clear all data?")) { db = {exp:[], sales:[], yield:[]}; saveAndRender(); } }

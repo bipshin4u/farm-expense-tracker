@@ -10,6 +10,7 @@
             --straw: #f1c40f; --spawn: #9b59b6; --chem: #e67e22; --punnet: #3498db;
             --worker: #1abc9c; --utility: #95a5a6; --misc: #34495e; --yield: #2ecc71; 
             --success: #27ae60; --danger: #e74c3c; --dark: #2c3e50;
+            --bipin: #8e44ad; --arjun: #2980b9; --kotak: #c0392b;
         }
         body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -22,10 +23,14 @@
         button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-sale { background: var(--success); }
         .btn-yield { background: var(--yield); }
-        .table-container { overflow-x: auto; max-height: 300px; }
+        .table-container { overflow-x: auto; max-height: 400px; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         td, th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
         .tag { padding: 2px 6px; border-radius: 4px; color: white; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        /* Account Tags */
+        .acc-tag { font-size: 9px; padding: 1px 4px; border-radius: 3px; margin-left: 5px; color: white; vertical-align: middle; }
+        .Bipin { background: var(--bipin); } .Arjun { background: var(--arjun); } .Kotak { background: var(--kotak); }
+        /* Category Tags */
         .Straw { background: var(--straw); color: black; } .Spawn { background: var(--spawn); } 
         .Chemicals { background: var(--chem); } .Worker { background: var(--worker); }
         .del-btn { background: none; color: #e74c3c; width: auto; padding: 5px; margin: 0; font-size: 18px; }
@@ -34,7 +39,7 @@
 <body>
 
     <h1 style="text-align:center; margin-bottom:5px;">🍄 Farm Cloud Pro</h1>
-    <div id="status" class="sync-status">✓ System Live</div>
+    <div id="status" class="sync-status">✓ All Systems Synced</div>
 
     <div class="card grid">
         <div class="full"><small>Net Profit/Loss</small><div id="net-total" class="val">₹0</div></div>
@@ -64,6 +69,11 @@
                 <option value="Misc">Miscellaneous</option>
             </optgroup>
         </select>
+        <select id="e-paidBy">
+            <option value="Bipin">Paid by Bipin</option>
+            <option value="Arjun">Paid by Arjun</option>
+            <option value="Kotak">Paid via Kotak</option>
+        </select>
         <input type="number" id="e-amt" placeholder="Amount (₹)">
         <button onclick="addData('exp')">Save & Sync</button>
     </div>
@@ -92,65 +102,64 @@
                 <tbody id="history-body"></tbody>
             </table>
         </div>
+        <button onclick="loadCloudData()" style="background:#3498db; margin-top:10px; font-size:12px;">🔄 Force Refresh from Cloud</button>
     </div>
 
     <script>
-        // PASTE YOUR GOOGLE APP SCRIPT URL HERE
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby6_K43UQSHDHhcHGVO4vZ1M71bpJIrtYHAO7MvaD5BVlSuTIfL4W0jSUWJNqDN4QqV/exec";
-    
-        // This runs as soon as you open the website
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLa5Aa20B1T8XTaa0VYzEk8HoWvL2dU-iGXVEogmO2bvthvD1kxmUH-gnI0Vka2ZrM/exec";
+
+        let db = { exp: [], sales: [], yield: [] };
+        let myChart;
+
         window.onload = loadCloudData;
-    
+
         async function loadCloudData() {
-            document.getElementById('status').innerText = "⌛ Downloading farm data...";
+            document.getElementById('status').innerText = "⌛ Downloading latest farm data...";
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 const cloudData = await response.json();
                 
-                // Organize cloud data back into our local format
                 let newDb = { exp: [], sales: [], yield: [] };
                 cloudData.forEach(item => {
-                    if (item.type === 'exp') newDb.exp.unshift(item);
-                    else if (item.type === 'sale') newDb.sales.unshift(item);
-                    else if (item.type === 'yield') newDb.yield.unshift(item);
+                    if (item.type === 'exp') newDb.exp.push(item);
+                    else if (item.type === 'sale') newDb.sales.push(item);
+                    else if (item.type === 'yield') newDb.yield.push(item);
                 });
                 
                 db = newDb;
-                saveAndRender(); // Update the charts and tables
-                document.getElementById('status').innerText = "✓ All Phones Synced";
+                saveAndRender();
+                document.getElementById('status').innerText = "✓ Cloud Synced";
             } catch (e) {
-                document.getElementById('status').innerText = "⚠ Using Offline Data";
+                document.getElementById('status').innerText = "⚠ Offline Mode";
             }
         }
-    
-        // ... (Keep the rest of your addData, deleteItem, and Chart functions) ...
-        let db = JSON.parse(localStorage.getItem('mushroom_pro_data')) || { exp: [], sales: [], yield: [] };
-        let myChart;
 
         async function syncToCloud(payload) {
-            document.getElementById('status').innerText = "⌛ Syncing to Google Sheets...";
+            document.getElementById('status').innerText = "⌛ Syncing...";
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     body: JSON.stringify(payload)
                 });
-                document.getElementById('status').innerText = "✓ Cloud Updated Successfully";
+                document.getElementById('status').innerText = "✓ Cloud Updated";
             } catch (e) {
-                document.getElementById('status').innerText = "⚠ Sync Failed (Saved Locally)";
+                document.getElementById('status').innerText = "⚠ Sync Failed";
             }
         }
 
         function addData(type) {
             const today = new Date().toISOString().split('T')[0];
             const id = Date.now();
-            let payload = { id, type, date: "", details: "", amt: 0 };
+            let payload = { id, type, date: "", details: "", amt: 0, paidBy: "" };
 
             if (type === 'exp') {
                 const sel = document.getElementById('e-cat');
+                const payer = document.getElementById('e-paidBy');
                 payload.date = document.getElementById('e-date').value || today;
                 payload.details = sel.options[sel.selectedIndex].text;
                 payload.amt = parseFloat(document.getElementById('e-amt').value) || 0;
+                payload.paidBy = payer.value;
                 db.exp.unshift(payload);
             } else if (type === 'sale') {
                 const qty = parseFloat(document.getElementById('s-qty').value) || 0;
@@ -166,28 +175,23 @@
                 db.yield.unshift(payload);
             }
 
-            localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
             syncToCloud(payload);
             saveAndRender();
             ['e-amt', 's-cust', 's-qty', 's-price', 'y-weight'].forEach(el => { if(document.getElementById(el)) document.getElementById(el).value = ''; });
         }
 
-        function deleteItem(type, id) {
-            if(confirm("Delete locally? (Note: Cloud entry remains in Sheet)")) {
-                db[type] = db[type].filter(i => i.id !== id);
-                saveAndRender();
-            }
-        }
-
         function saveAndRender() {
-            localStorage.setItem('mushroom_pro_data', JSON.stringify(db));
             const body = document.getElementById('history-body');
             body.innerHTML = '';
             let te = 0, ts = 0;
             
-            db.exp.forEach(i => { te += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><span class="tag ${i.cat || 'Worker'}">${i.details}</span></td><td style="color:var(--danger)">-₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('exp', ${i.id})">×</button></td></tr>`; });
-            db.sales.forEach(i => { ts += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><b>${i.details}</b></td><td style="color:var(--success)">+₹${i.amt}</td><td><button class="del-btn" onclick="deleteItem('sales', ${i.id})">×</button></td></tr>`; });
-            db.yield.forEach(i => { body.innerHTML += `<tr style="background:#f9fff9"><td>${i.date}</td><td>🍄 Harvest</td><td>${i.weight}kg</td><td><button class="del-btn" onclick="deleteItem('yield', ${i.id})">×</button></td></tr>`; });
+            db.exp.forEach(i => { 
+                te += i.amt; 
+                const payerTag = i.paidBy ? `<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>` : '';
+                body.innerHTML += `<tr><td>${i.date}</td><td><span class="tag Worker">${i.details}</span>${payerTag}</td><td style="color:var(--danger)">-₹${i.amt}</td><td></td></tr>`; 
+            });
+            db.sales.forEach(i => { ts += i.amt; body.innerHTML += `<tr><td>${i.date}</td><td><b>${i.details}</b></td><td style="color:var(--success)">+₹${i.amt}</td><td></td></tr>`; });
+            db.yield.forEach(i => { body.innerHTML += `<tr style="background:#f9fff9"><td>${i.date}</td><td>🍄 Harvest</td><td>${i.weight}kg</td><td></td></tr>`; });
 
             document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
             document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
@@ -210,7 +214,6 @@
                 }
             });
         }
-        saveAndRender();
     </script>
 </body>
 </html>

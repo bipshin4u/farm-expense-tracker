@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyster Farm Master Pro</title>
+    <title>Oyster Farm Master Pro (IST)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -36,10 +36,10 @@
 <body>
 
     <h1 style="text-align:center; margin-bottom:5px;">🍄 Farm Master Pro</h1>
-    <div id="status" class="sync-status">✓ Connected</div>
+    <div id="status" class="sync-status">✓ Connected (IST Mode)</div>
 
     <div class="card">
-        <h2>📦 Stock Runway (Days Left)</h2>
+        <h2>📦 Stock Runway</h2>
         <div id="stock-display" class="stock-grid"></div>
     </div>
 
@@ -131,14 +131,25 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFMQadF8BEZ_7T5VW3VfprN4oa_srF_nSfXvlM6RVV6oEnERmCp-UymFl_ts3nEd6Z/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFMQadF8BEZ_7T5VW3VfprN4oa_srF_nSfXvlM6RVV6oEnERmCp-UymFl_ts3nEd6Z/exec";
         let dbMaster = [];
         let myChart;
 
         const dailyUsage = { "Straw": 5, "Spawn": 0.5, "Bavistine": 0.05, "Formalin": 0.1, "PP Bags": 0.2, "Rubber Bands": 0.05, "Cotton": 0.1, "Punnets": 10 };
         const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
 
-        window.onload = loadCloudData;
+        // Utility to get today's date in IST YYYY-MM-DD
+        function getISTDate(dateObj = new Date()) {
+            return dateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        }
+
+        window.onload = () => {
+            const today = getISTDate();
+            document.getElementById('e-date').value = today;
+            document.getElementById('s-date').value = today;
+            document.getElementById('hw-date').value = today;
+            loadCloudData();
+        };
 
         async function loadCloudData() {
             document.getElementById('status').innerText = "⌛ Syncing...";
@@ -146,13 +157,13 @@
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 dbMaster = await response.json();
                 renderAll();
-                document.getElementById('status').innerText = "✓ Connected";
+                document.getElementById('status').innerText = "✓ Connected (IST)";
             } catch (e) { document.getElementById('status').innerText = "⚠ Offline"; }
         }
 
         async function addData(type) {
-            const today = new Date().toISOString().split('T')[0];
-            let payload = { action: "add", type, date: document.getElementById(type==='exp'?'e-date':(type==='sale'?'s-date':'hw-date')).value || today, details: "", amt: 0, qty: 0, paidBy: "" };
+            let dateInput = document.getElementById(type==='exp'?'e-date':(type==='sale'?'s-date':'hw-date')).value;
+            let payload = { action: "add", type, date: dateInput, details: "", amt: 0, qty: 0, paidBy: "" };
 
             if (type === 'exp') {
                 payload.details = document.getElementById('e-cat').value;
@@ -174,34 +185,35 @@
 
             document.getElementById('status').innerText = "⌛ Saving...";
             await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            loadCloudData();
+            setTimeout(loadCloudData, 1000); // Small delay to let Google process
             ['e-amt','e-qty','s-cust','s-qty','s-price','y-weight','w-val'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
         }
 
         function editRow(rowId) {
             const item = dbMaster.find(i => i.rowId == rowId);
             if (!item) return;
+            const itemDate = item.date.split('T')[0];
             if (item.type === 'exp') {
-                document.getElementById('e-date').value = item.date.split('T')[0];
+                document.getElementById('e-date').value = itemDate;
                 document.getElementById('e-cat').value = item.details;
                 document.getElementById('e-amt').value = item.amt;
                 document.getElementById('e-qty').value = item.qty;
                 document.getElementById('e-paidBy').value = item.paidBy;
                 document.getElementById('expense-form').scrollIntoView();
             } else if (item.type === 'sale') {
-                document.getElementById('s-date').value = item.date.split('T')[0];
+                document.getElementById('s-date').value = itemDate;
                 document.getElementById('s-cust').value = item.details.replace("Sale: ", "");
                 document.getElementById('s-qty').value = item.qty;
                 document.getElementById('s-price').value = item.amt / (item.qty || 1);
             }
-            alert("Loaded into form. Change values and Save. Delete old row manually.");
+            alert("Loaded into form. Fix and Save. Remember to delete the old row!");
         }
 
         async function deleteRow(rowId) {
             if(!confirm("Delete this entry?")) return;
             document.getElementById('status').innerText = "⌛ Deleting...";
             await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", rowId: rowId }) });
-            loadCloudData();
+            setTimeout(loadCloudData, 500);
         }
 
         function calculateStock() {
@@ -225,26 +237,23 @@
             sDisplay.innerHTML = '';
             for(let item in stock) {
                 const runway = dailyUsage[item] ? Math.floor(stock[item] / dailyUsage[item]) : 0;
-                const isLow = runway < 3;
                 const unit = item === "Formalin" ? "L" : (item === "Punnets" ? "pcs" : (item === "Cotton" ? "rolls" : "kg"));
-                sDisplay.innerHTML += `<div class="stock-item ${isLow ? 'low-stock' : ''}"><div><b>${item}</b>: ${stock[item].toFixed(1)} ${unit}</div><div style="font-size:10px">${isLow ? '⚠️ REORDER' : runway + 'd left'}</div></div>`;
+                sDisplay.innerHTML += `<div class="stock-item ${runway < 3 ? 'low-stock' : ''}"><div><b>${item}</b>: ${stock[item].toFixed(1)} ${unit}</div><div style="font-size:10px">${runway < 3 ? '⚠️ Low' : runway + 'd left'}</div></div>`;
             }
 
             dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
                 const amt = safeNum(i.amt);
-                const qty = safeNum(i.qty);
                 let valStr = "";
-
                 if(i.type === 'exp') { te += amt; valStr = `₹${amt}`; }
                 else if(i.type === 'sale') { ts += amt; valStr = `₹${amt}`; }
                 else if(i.type === 'yield') { valStr = `${amt} kg`; }
-                else if(i.type === 'waste') { 
-                    const unit = i.details.includes('Mushroom') ? 'kg' : 'Bags';
-                    valStr = `${amt} ${unit}`; 
-                }
+                else if(i.type === 'waste') { valStr = `${amt} ${i.details.includes('Mushroom')?'kg':'Bags'}`; }
+
+                // Force date display to match IST
+                const displayDate = i.date.split('T')[0];
 
                 body.innerHTML += `<tr>
-                    <td>${i.date.split('T')[0]}</td>
+                    <td>${displayDate}</td>
                     <td>${i.details}${i.paidBy&&i.type==='exp' ? `<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>`:''}</td>
                     <td>${valStr}</td>
                     <td><div class="actions"><span onclick="editRow(${i.rowId})">✏️</span><span onclick="deleteRow(${i.rowId})">🗑️</span></div></td>
@@ -262,21 +271,21 @@
             const ws = weeklyData.filter(i => i.type === 'sale').reduce((a, b) => a + safeNum(b.amt), 0);
             const we = weeklyData.filter(i => i.type === 'exp').reduce((a, b) => a + safeNum(b.amt), 0);
             const wh = weeklyData.filter(i => i.type === 'yield').reduce((a, b) => a + safeNum(b.amt), 0);
-            const msg = `🍄 *Oyster Farm Weekly Report* 🍄%0A💰 *Sales:* ₹${ws}%0A💸 *Expenses:* ₹${we}%0A📉 *Net Profit:* ₹${ws - we}%0A🍄 *Harvest:* ${wh} kg%0A-----------------%0A_Sent via Farm Master Pro_`;
+            const msg = `🍄 *Weekly Report (IST)* 🍄%0A💰 *Sales:* ₹${ws}%0A💸 *Expenses:* ₹${we}%0A📈 *Profit:* ₹${ws - we}%0A🍄 *Harvest:* ${wh} kg%0A-----------------%0A_Farm Master Pro_`;
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 
         function updateChart() {
             const ctx = document.getElementById('financeChart').getContext('2d');
             if (myChart) myChart.destroy();
-            const dates = [...new Set(dbMaster.map(d => d.date))].sort().slice(-7);
+            const dates = [...new Set(dbMaster.map(d => d.date.split('T')[0]))].sort().slice(-7);
             myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: dates.map(d => d.split('T')[0]),
+                    labels: dates,
                     datasets: [
-                        { label: 'Sales', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'sale').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#27ae60', tension: 0.3 },
-                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c', tension: 0.3 }
+                        { label: 'Sales', data: dates.map(d => dbMaster.filter(i => i.date.startsWith(d) && i.type === 'sale').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#27ae60', tension: 0.3 },
+                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date.startsWith(d) && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c', tension: 0.3 }
                     ]
                 },
                 options: { plugins: { legend: { display: false } } }

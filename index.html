@@ -4,279 +4,222 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oyster Farm Master Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --straw: #f1c40f; --spawn: #9b59b6; --chem: #e67e22; --punnet: #3498db;
-            --worker: #1abc9c; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50;
-            --bipin: #8e44ad; --arjun: #2980b9; --kotak: #c0392b; --success: #27ae60;
-            --forecast: #6c5ce7;
+            --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; 
+            --dark: #2c3e50; --success: #27ae60; --forecast: #6c5ce7;
         }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); line-height: 1.4; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); padding-bottom: 30px; }
+        
+        /* Top Dashboard & Forecast (Common) */
+        .header-status { background: white; padding: 15px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
+        .forecast-banner { background: var(--forecast); color: white; padding: 12px; border-radius: 8px; margin: 10px 15px; }
+
+        /* Tabs Navigation */
+        .tab-bar { display: flex; background: #eee; margin: 0 15px 15px 15px; border-radius: 10px; padding: 4px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: none; font-weight: bold; font-size: 11px; cursor: pointer; border-radius: 8px; color: #666; }
+        .tab-btn.active { background: white; color: var(--dark); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        .container { padding: 0 15px; }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .sync-status { font-size: 11px; text-align: center; color: var(--success); margin-bottom: 10px; font-weight: bold; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
-        h2 { margin: 0; font-size: 1rem; text-transform: uppercase; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .full { grid-column: span 2; text-align: center; }
-        .val { font-size: 1.3rem; font-weight: bold; display: block; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-        button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-fill { background: var(--worker); } .btn-sale { background: var(--success); } .btn-yield { background: var(--yield); } .btn-waste { background: #e67e22; }
-        .stock-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
-        .stock-item { padding: 10px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .low-stock { border-left-color: var(--danger); background: #fff1f1; color: var(--danger); }
-        .forecast-card { background: var(--forecast); color: white; }
-        .prod-stat { text-align: center; border-right: 1px solid #eee; }
-        .prod-stat:last-child { border-right: none; }
-        .table-container { overflow-x: auto; max-height: 300px; }
+        .val { font-size: 1.1rem; font-weight: bold; display: block; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        button { background: var(--dark); color: white; border: none; font-weight: bold; }
+        
+        .stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .stock-item { padding: 6px; border-radius: 6px; background: #f8f9fa; border-left: 3px solid #ddd; font-size: 10px; line-height: 1.2; }
+        .low-stock { border-left-color: var(--danger); background: #fff1f1; }
+        
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        td, th { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: left; }
+        td { padding: 8px 4px; border-bottom: 1px solid #eee; }
+        .sync-status { font-size: 10px; text-align: center; color: var(--success); margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align:center; margin-bottom:5px;">🍄 Farm Master Pro</h1>
-    <div id="status" class="sync-status">✓ Connected</div>
-
-    <div class="card forecast-card">
-        <div class="header-row" style="border-color: rgba(255,255,255,0.2)">
-            <h2 style="color:white">🔮 10-Day Harvest Forecast</h2>
+    <div class="header-status">
+        <div id="status" class="sync-status">✓ Connected</div>
+        <div class="grid" style="text-align: center;">
+            <div><small>Active Bags</small><div id="active-bags" class="val">0</div></div>
+            <div><small>Avg Yield/Bag</small><div id="yield-bag" class="val" style="color:var(--success)">0 kg</div></div>
         </div>
-        <div class="grid">
-            <div class="prod-stat" style="border-color: rgba(255,255,255,0.2)">
-                <small>Expected Yield</small>
-                <div id="fc-yield" class="val">0 kg</div>
-            </div>
-            <div class="prod-stat">
-                <small>Required Punnets</small>
-                <div id="fc-punnets" class="val">0 pcs</div>
-            </div>
-        </div>
-        <p id="fc-msg" style="font-size: 11px; margin-top: 10px; text-align: center; opacity: 0.9;"></p>
     </div>
 
-    <div class="card grid">
-        <div class="full"><h2>🏭 Production Dashboard</h2></div>
-        <div class="prod-stat"><small>Active Bags</small><div id="active-bags" class="val">0</div></div>
-        <div class="prod-stat"><small>Waste Rate</small><div id="waste-rate" class="val" style="color:var(--danger)">0%</div></div>
-        <div class="prod-stat"><small>Avg Yield/Bag</small><div id="yield-bag" class="val" style="color:var(--success)">0kg</div></div>
-    </div>
-
-    <div class="card">
-        <h2>🛠 Daily Bag Filling</h2>
-        <div class="grid">
-            <input type="date" id="f-date">
-            <input type="number" id="f-qty" placeholder="Bags filled">
+    <div class="forecast-banner">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size: 12px; font-weight:bold;">🔮 10-DAY FORECAST:</span>
+            <span id="fc-yield" style="font-weight:bold;">0 kg</span>
         </div>
-        <button class="btn-fill" onclick="addData('fill')">Log Bags Prepared</button>
+        <div id="fc-msg" style="font-size: 10px; margin-top: 4px; opacity: 0.9;">Calculating...</div>
     </div>
 
-    <div class="card">
-        <div class="header-row">
-            <h2>📦 Stock Runway</h2>
-            <span onclick="toggleSettings()" style="cursor:pointer; font-size: 1.2rem;">⚙️</span>
-        </div>
-        <div id="usage-settings" style="display:none;">
-            <div id="usage-inputs"></div>
-            <button onclick="saveUsageSettings()" style="padding:8px; font-size:12px; background:var(--arjun)">Save Usage Rates</button>
-        </div>
-        <div id="stock-display" class="stock-grid"></div>
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-fill')">BAG FILLING</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-harvest')">HARVEST/LOSS</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-finance')">CASH LOG</button>
     </div>
 
-    <div class="card grid">
-        <div class="full"><small>Net Profit/Loss</small><div id="net-total" class="val">₹0</div></div>
-        <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
-        <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
-    </div>
-
-    <div class="card">
-        <h2>Harvest / Wastage</h2>
-        <div class="grid">
-            <div>
-                <input type="number" step="0.1" id="y-weight" placeholder="Yield (kg)">
-                <button class="btn-yield" onclick="addData('yield')">Save Yield</button>
-            </div>
-            <div>
-                <select id="w-type"><option value="Contaminated Bag">Contaminated Bag</option><option value="Mushroom Waste">Mushroom Waste (kg)</option></select>
-                <input type="number" step="0.1" id="w-val" placeholder="Qty">
-                <button class="btn-waste" onclick="addData('waste')">Log Waste</button>
+    <div class="container">
+        <div id="tab-fill" class="tab-content active">
+            <div class="card">
+                <h2 style="font-size:0.9rem; margin-top:0;">🛠 Log New Bags</h2>
+                <input type="number" id="f-qty" placeholder="Number of bags filled">
+                <button style="background:#1abc9c" onclick="addData('fill')">Save Production</button>
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <h2>Sales & Expenses</h2>
-        <select id="quick-type" onchange="toggleForm()">
-            <option value="sale">New Sale</option>
-            <option value="exp">New Expense</option>
-        </select>
-        <div id="sale-form">
-            <input type="text" id="s-cust" placeholder="Customer Name">
-            <input type="number" id="s-qty" placeholder="Punnets">
-            <input type="number" id="s-price" placeholder="Rate">
-            <button class="btn-sale" onclick="addData('sale')">Save Sale</button>
+        <div id="tab-harvest" class="tab-content">
+            <div class="card">
+                <h2 style="font-size:0.9rem; margin-top:0;">🍄 Harvest & Waste</h2>
+                <input type="number" step="0.1" id="y-weight" placeholder="Harvest Weight (kg)">
+                <button style="background:var(--yield)" onclick="addData('yield')">Save Yield</button>
+                <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+                <select id="w-type"><option value="Contaminated Bag">Contaminated Bag (Qty)</option><option value="Mushroom Waste">Mushroom Waste (kg)</option></select>
+                <input type="number" step="0.1" id="w-val" placeholder="Value">
+                <button style="background:var(--danger)" onclick="addData('waste')">Log Loss</button>
+            </div>
         </div>
-        <div id="exp-form" style="display:none">
-            <select id="e-cat">
-                <option value="Straw">Straw</option><option value="Spawn">Spawn</option>
-                <option value="Punnets">Punnets</option><option value="Rubber Bands">Rubber Bands</option>
-                <option value="Labor">Labor</option>
-            </select>
-            <input type="number" id="e-amt" placeholder="Amount (₹)">
-            <input type="number" id="e-qty" placeholder="Quantity">
-            <button onclick="addData('exp')">Save Expense</button>
-        </div>
-    </div>
 
-    <div class="card">
-        <h2>History</h2>
-        <div class="table-container"><table><tbody id="history-body"></tbody></table></div>
+        <div id="tab-finance" class="tab-content">
+            <div class="card grid" style="text-align:center;">
+                <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
+                <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
+            </div>
+            <div class="card">
+                <select id="q-type" onchange="document.getElementById('f-sale').style.display = this.value==='sale'?'block':'none'; document.getElementById('f-exp').style.display = this.value==='exp'?'block':'none';">
+                    <option value="sale">Record Sale</option>
+                    <option value="exp">Record Expense</option>
+                </select>
+                <div id="f-sale">
+                    <input type="text" id="s-cust" placeholder="Customer Name">
+                    <input type="number" id="s-qty" placeholder="Punnets">
+                    <input type="number" id="s-price" placeholder="Rate">
+                    <button style="background:var(--success)" onclick="addData('sale')">Save Sale</button>
+                </div>
+                <div id="f-exp" style="display:none">
+                    <select id="e-cat"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="Punnets">Punnets</option><option value="Rubber Bands">Rubber Bands</option><option value="Labor">Labor</option></select>
+                    <input type="number" id="e-amt" placeholder="Amount (₹)">
+                    <input type="number" id="e-qty" placeholder="Quantity">
+                    <button onclick="addData('exp')">Save Expense</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h2 style="font-size:0.9rem; margin:0;">📦 Stock Runway</h2>
+                <span onclick="toggleSet()" style="cursor:pointer; font-size: 1rem;">⚙️</span>
+            </div>
+            <div id="u-set" style="display:none; margin-bottom:10px;">
+                <div id="u-inputs"></div>
+                <button onclick="saveSet()" style="padding:5px; font-size:11px;">Update Usage Rates</button>
+            </div>
+            <div id="stock-display" class="stock-grid"></div>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size:0.9rem; margin:0 0 10px 0;">Recent Activity</h2>
+            <div style="max-height:200px; overflow-y:auto;">
+                <table><tbody id="history-body"></tbody></table>
+            </div>
+        </div>
     </div>
 
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFMQadF8BEZ_7T5VW3VfprN4oa_srF_nSfXvlM6RVV6oEnERmCp-UymFl_ts3nEd6Z/exec"; 
         let dbMaster = [];
-        let dailyUsage = JSON.parse(localStorage.getItem('mushroomUsage')) || {
-            "Straw": 15, "Spawn": 1.2, "Bavistine": 0.05, "Formalin": 0.1, 
-            "PP Bags": 0.2, "Rubber Bands": 20, "Cotton": 0.1, "Punnets": 10
-        };
-
-        const units = { "Straw": "kg", "Spawn": "kg", "Bavistine": "kg", "Formalin": "L", "PP Bags": "kg", "Rubber Bands": "pcs", "Cotton": "rolls", "Punnets": "pcs" };
+        let dailyUsage = JSON.parse(localStorage.getItem('mushroomUsage')) || { "Straw": 15, "Spawn": 1.2, "Bavistine": 0.05, "Formalin": 0.1, "PP Bags": 0.2, "Rubber Bands": 20, "Punnets": 10 };
+        const units = { "Straw": "kg", "Spawn": "kg", "Bavistine": "kg", "Formalin": "L", "PP Bags": "kg", "Rubber Bands": "pcs", "Punnets": "pcs" };
         const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
 
-        window.onload = () => { loadUsageInputs(); loadCloudData(); };
-
-        function toggleForm() {
-            const type = document.getElementById('quick-type').value;
-            document.getElementById('sale-form').style.display = type === 'sale' ? 'block' : 'none';
-            document.getElementById('exp-form').style.display = type === 'exp' ? 'block' : 'none';
-        }
-
-        function toggleSettings() {
-            const panel = document.getElementById('usage-settings');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function loadUsageInputs() {
-            const container = document.getElementById('usage-inputs');
-            container.innerHTML = '';
-            for (let item in dailyUsage) {
-                container.innerHTML += `<div class="settings-row" style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${item}</span><input type="number" style="width:60px; padding:2px" id="set-${item}" value="${dailyUsage[item]}"></div>`;
-            }
-        }
-
-        function saveUsageSettings() {
-            for (let item in dailyUsage) dailyUsage[item] = safeNum(document.getElementById(`set-${item}`).value);
-            localStorage.setItem('mushroomUsage', JSON.stringify(dailyUsage));
-            toggleSettings(); renderAll();
+        function openTab(evt, tN) {
+            let tc = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tc.length; i++) tc[i].style.display = "none";
+            let tb = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tb.length; i++) tb[i].className = tb[i].className.replace(" active", "");
+            document.getElementById(tN).style.display = "block";
+            evt.currentTarget.className += " active";
         }
 
         async function loadCloudData() {
-            document.getElementById('status').innerText = "⌛ Syncing...";
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 dbMaster = await response.json();
                 renderAll();
-                document.getElementById('status').innerText = "✓ Connected";
             } catch (e) { document.getElementById('status').innerText = "⚠ Offline"; }
         }
 
         async function addData(type) {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
             let payload = { action: "add", type, date: today, details: "", amt: 0, qty: 0, paidBy: "Bipin" };
-
-            if (type === 'fill') {
-                payload.qty = safeNum(document.getElementById('f-qty').value);
-                payload.details = "Bags Filled";
-            } else if (type === 'exp') {
-                payload.details = document.getElementById('e-cat').value;
-                payload.amt = safeNum(document.getElementById('e-amt').value);
-                payload.qty = safeNum(document.getElementById('e-qty').value);
-            } else if (type === 'sale') {
-                const q = safeNum(document.getElementById('s-qty').value);
-                payload.amt = q * safeNum(document.getElementById('s-price').value);
-                payload.qty = q;
-                payload.details = "Sale: " + (document.getElementById('s-cust').value || "Retail");
-            } else if (type === 'yield') {
-                payload.amt = safeNum(document.getElementById('y-weight').value);
-                payload.details = "Harvest";
-            } else if (type === 'waste') {
-                payload.amt = safeNum(document.getElementById('w-val').value);
-                payload.details = "Waste: " + document.getElementById('w-type').value;
-            }
+            if (type === 'fill') { payload.qty = safeNum(document.getElementById('f-qty').value); payload.details = "Bags Filled"; }
+            else if (type === 'exp') { payload.details = document.getElementById('e-cat').value; payload.amt = safeNum(document.getElementById('e-amt').value); payload.qty = safeNum(document.getElementById('e-qty').value); }
+            else if (type === 'sale') { const q = safeNum(document.getElementById('s-qty').value); payload.amt = q * safeNum(document.getElementById('s-price').value); payload.qty = q; payload.details = "Sale: " + document.getElementById('s-cust').value; }
+            else if (type === 'yield') { payload.amt = safeNum(document.getElementById('y-weight').value); payload.details = "Harvest"; }
+            else if (type === 'waste') { payload.amt = safeNum(document.getElementById('w-val').value); payload.details = "Waste: " + document.getElementById('w-type').value; }
 
             document.getElementById('status').innerText = "⌛ Saving...";
             await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
             setTimeout(loadCloudData, 1200);
         }
 
-        function calculateMetrics() {
-            let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0, "PP Bags": 0, "Rubber Bands": 0, "Cotton": 0, "Punnets": 0 };
-            let totalFilled = 0, wastedBags = 0, totalYield = 0, activeBags = 0, forecastYield = 0;
+        function calculate() {
+            let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0, "PP Bags": 0, "Rubber Bands": 0, "Punnets": 0 };
+            let totalF = 0, wastedB = 0, totalY = 0, activeB = 0, forecastY = 0;
             const now = new Date();
-            const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(now.getDate() - 30);
+            const thirtyAgo = new Date(); thirtyAgo.setDate(now.getDate() - 30);
 
             dbMaster.forEach(i => {
-                const val = safeNum(i.amt); const qty = safeNum(i.qty);
-                const itemDate = new Date(i.date);
-
-                if (i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += qty;
+                const v = safeNum(i.amt); const q = safeNum(i.qty);
+                const iD = new Date(i.date);
+                if (i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += q;
                 if (i.type === 'fill') {
-                    totalFilled += qty;
-                    if(itemDate >= thirtyDaysAgo) activeBags += qty;
-                    s["Straw"] -= (qty * 1.5); s["Spawn"] -= (qty * 0.12); s["Rubber Bands"] -= (qty * 2); s["PP Bags"] -= (qty * 0.05);
-                    
-                    // Forecast Logic: Bags filled 15-25 days ago are peaking now/soon
-                    const daysOld = (now - itemDate) / (1000 * 60 * 60 * 24);
-                    if (daysOld >= 10 && daysOld <= 25) forecastYield += (qty * 0.6); // Assume 0.6kg yield per bag
+                    totalF += q; if(iD >= thirtyAgo) activeB += q;
+                    s["Straw"] -= (q * 1.5); s["Spawn"] -= (q * 0.12); s["Rubber Bands"] -= (q * 2);
+                    const age = (now - iD) / (86400000);
+                    if (age >= 12 && age <= 28) forecastY += (q * 0.6);
                 }
-                if (i.type === 'yield') { s["Punnets"] -= (val * 5); totalYield += val; }
+                if (i.type === 'yield') { s["Punnets"] -= (v * 5); totalY += v; }
                 if (i.type === 'waste' && i.details.includes("Contaminated")) {
-                    wastedBags += val;
-                    if(itemDate >= thirtyDaysAgo) activeBags -= val;
-                    forecastYield -= (val * 0.6);
+                    wastedB += v; if(iD >= thirtyAgo) activeB -= v;
+                    forecastY -= (v * 0.6);
+                    s["Straw"] -= (v * 1.5); s["Spawn"] -= (v * 0.12); s["Rubber Bands"] -= (v * 2);
                 }
             });
-            return { s, totalFilled, wastedBags, totalYield, activeBags, forecastYield };
+            return { s, totalF, wastedB, totalY, activeB, forecastY };
         }
 
         function renderAll() {
-            const data = calculateMetrics();
-            document.getElementById('active-bags').innerText = Math.max(0, data.activeBags);
-            document.getElementById('waste-rate').innerText = (data.totalFilled > 0 ? (data.wastedBags/data.totalFilled*100).toFixed(1) : 0) + '%';
-            document.getElementById('yield-bag').innerText = (data.totalFilled > 0 ? (data.totalYield/(data.totalFilled - data.wastedBags || 1)).toFixed(2) : 0) + 'kg';
+            const d = calculate();
+            document.getElementById('active-bags').innerText = Math.max(0, d.activeB);
+            document.getElementById('yield-bag').innerText = (d.totalF > 0 ? (d.totalY/(d.totalF-d.wastedB||1)).toFixed(2) : 0) + ' kg';
+            document.getElementById('fc-yield').innerText = Math.max(0, d.forecastY).toFixed(1) + " kg";
+            document.getElementById('fc-msg').innerText = d.s["Punnets"] < (d.forecastY * 5) ? "⚠️ Need Punnets!" : "✅ Punnets OK";
 
-            // Forecast Display
-            const estYield = Math.max(0, data.forecastYield).toFixed(1);
-            const reqPunnets = Math.ceil(estYield * 5);
-            document.getElementById('fc-yield').innerText = estYield + " kg";
-            document.getElementById('fc-punnets').innerText = reqPunnets + " pcs";
-            
-            if(data.s["Punnets"] < reqPunnets) {
-                document.getElementById('fc-msg').innerText = `⚠️ Warning: You need ${reqPunnets} punnets but only have ${data.s["Punnets"].toFixed(0)}. Buy soon!`;
-                document.getElementById('fc-msg').style.color = "#ffbe76";
-            } else {
-                document.getElementById('fc-msg').innerText = "✅ Stock looks good for upcoming harvest.";
-                document.getElementById('fc-msg').style.color = "white";
+            const sD = document.getElementById('stock-display'); sD.innerHTML = '';
+            for(let k in d.s) {
+                const run = Math.floor(d.s[k] / (dailyUsage[k] || 1));
+                sD.innerHTML += `<div class="stock-item ${run < 3 ? 'low-stock' : ''}"><b>${k}</b><br>${d.s[k].toFixed(1)}<br>${run < 0 ? 'Empty' : run + 'd'}</div>`;
             }
 
-            const sDisplay = document.getElementById('stock-display'); sDisplay.innerHTML = '';
-            for(let item in data.s) {
-                const runway = Math.floor(data.s[item] / (dailyUsage[item] || 0.001));
-                sDisplay.innerHTML += `<div class="stock-item ${runway < 3 ? 'low-stock' : ''}"><div><b>${item}</b>: ${data.s[item].toFixed(1)}</div><div>${runway < 0 ? 'Empty' : runway + 'd'}</div></div>`;
-            }
-
-            const body = document.getElementById('history-body'); body.innerHTML = '';
+            const hb = document.getElementById('history-body'); hb.innerHTML = '';
             let te = 0, ts = 0;
             dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(i => {
-                const amt = safeNum(i.amt); if(i.type === 'exp') te += amt; if(i.type === 'sale') ts += amt;
-                body.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}</td><td>${amt || i.qty}</td></tr>`;
+                if(i.type === 'exp') te += safeNum(i.amt); if(i.type === 'sale') ts += safeNum(i.amt);
+                hb.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}</td><td>${i.amt || i.qty}</td></tr>`;
             });
             document.getElementById('exp-total').innerText = '₹' + te;
             document.getElementById('sales-total').innerText = '₹' + ts;
-            document.getElementById('net-total').innerText = '₹' + (ts - te);
         }
+
+        function toggleSet() { const p = document.getElementById('u-set'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; if(p.style.display==='block') { const c = document.getElementById('u-inputs'); c.innerHTML = ''; for(let k in dailyUsage) c.innerHTML += `<div style="display:flex; justify-content:space-between; font-size:10px;"><span>${k}</span><input type="number" style="width:40px; padding:2px; margin:2px" id="set-${k}" value="${dailyUsage[k]}"></div>`; } }
+        function saveSet() { for(let k in dailyUsage) dailyUsage[k] = safeNum(document.getElementById(`set-${k}`).value); localStorage.setItem('mushroomUsage', JSON.stringify(dailyUsage)); toggleSet(); renderAll(); }
+
+        window.onload = loadCloudData;
     </script>
 </body>
 </html>

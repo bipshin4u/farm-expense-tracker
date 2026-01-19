@@ -276,4 +276,12 @@
                     labels: dates.map(d => d.split('T')[0]),
                     datasets: [
                         { label: 'Sales', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'sale').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#27ae60', tension: 0.3 },
-                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c', tension: 0.3
+                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c', tension: 0.3 }
+                    ]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+        }
+    </script>
+</body>
+</html>

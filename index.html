@@ -14,7 +14,8 @@
         body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); line-height: 1.4; }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .sync-status { font-size: 11px; text-align: center; color: var(--success); margin-bottom: 10px; font-weight: bold; }
-        h2 { margin-top: 0; font-size: 1rem; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 10px; text-transform: uppercase; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
+        h2 { margin: 0; font-size: 1rem; text-transform: uppercase; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .full { grid-column: span 2; text-align: center; }
         .val { font-size: 1.3rem; font-weight: bold; display: block; }
@@ -31,8 +32,9 @@
         .acc-tag { font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; font-weight: bold; margin-left: 4px; }
         .Bipin { background: var(--bipin); } .Arjun { background: var(--arjun); } .Kotak { background: var(--kotak); }
         .actions { display: flex; gap: 10px; color: #888; cursor: pointer; }
-        .settings-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
-        .settings-row input { width: 80px; padding: 5px; margin: 0; }
+        #usage-settings { display: none; background: #fdfdfd; padding: 10px; border: 1px dashed #ccc; border-radius: 8px; margin-top: 10px; }
+        .settings-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+        .settings-row input { width: 70px; padding: 4px; margin: 0; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -41,8 +43,18 @@
     <div id="status" class="sync-status">✓ Connected</div>
 
     <div class="card">
-        <h2>📦 Stock Runway</h2>
-        <div id="stock-display" class="stock-grid"></div>
+        <div class="header-row">
+            <h2>📦 Stock Runway</h2>
+            <span onclick="toggleSettings()" style="cursor:pointer; font-size: 1.2rem;">⚙️</span>
+        </div>
+        
+        <div id="usage-settings">
+            <small style="color:#666; display:block; margin-bottom:10px;">Set actual daily use to fix "Days Left":</small>
+            <div id="usage-inputs"></div>
+            <button onclick="saveUsageSettings()" style="padding:8px; font-size:12px; background:var(--arjun)">Save Usage Rates</button>
+        </div>
+
+        <div id="stock-display" class="stock-grid" style="margin-top:10px;"></div>
     </div>
 
     <div class="card grid">
@@ -132,18 +144,11 @@
         </div>
     </div>
 
-    <div class="card" id="settings-panel">
-        <h2>⚙️ Usage Settings (Per Day)</h2>
-        <div id="usage-inputs"></div>
-        <button onclick="saveUsageSettings()" style="margin-top:10px; background:var(--arjun)">Update Usage Rates</button>
-    </div>
-
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFMQadF8BEZ_7T5VW3VfprN4oa_srF_nSfXvlM6RVV6oEnERmCp-UymFl_ts3nEd6Z/exec"; 
         let dbMaster = [];
         let myChart;
 
-        // Default usage rates if none are saved
         let dailyUsage = JSON.parse(localStorage.getItem('mushroomUsage')) || {
             "Straw": 5, "Spawn": 0.5, "Bavistine": 0.05, "Formalin": 0.1, 
             "PP Bags": 0.2, "Rubber Bands": 0.05, "Cotton": 0.1, "Punnets": 10
@@ -153,11 +158,16 @@
         const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
 
         window.onload = () => {
-            loadUsageSettings();
+            loadUsageInputs();
             loadCloudData();
         };
 
-        function loadUsageSettings() {
+        function toggleSettings() {
+            const panel = document.getElementById('usage-settings');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function loadUsageInputs() {
             const container = document.getElementById('usage-inputs');
             container.innerHTML = '';
             for (let item in dailyUsage) {
@@ -174,7 +184,7 @@
                 dailyUsage[item] = safeNum(document.getElementById(`set-${item}`).value);
             }
             localStorage.setItem('mushroomUsage', JSON.stringify(dailyUsage));
-            alert("Usage settings updated!");
+            toggleSettings();
             renderAll();
         }
 
@@ -234,7 +244,7 @@
                 document.getElementById('s-qty').value = item.qty;
                 document.getElementById('s-price').value = item.amt / (item.qty || 1);
             }
-            alert("Loaded! Update values and click Save. Delete old entry manually.");
+            alert("Loaded to form. Update and click Save. Delete old row manually.");
         }
 
         async function deleteRow(rowId) {
@@ -264,10 +274,10 @@
             const sDisplay = document.getElementById('stock-display');
             sDisplay.innerHTML = '';
             for(let item in stock) {
-                const rate = dailyUsage[item] || 1;
+                const rate = dailyUsage[item] || 0.001;
                 const runway = Math.floor(stock[item] / rate);
                 const unit = units[item];
-                sDisplay.innerHTML += `<div class="stock-item ${runway < 3 ? 'low-stock' : ''}"><div><b>${item}</b>: ${stock[item].toFixed(1)} ${unit}</div><div style="font-size:10px">${runway < 3 ? '⚠️ Low' : runway + 'd left'}</div></div>`;
+                sDisplay.innerHTML += `<div class="stock-item ${runway < 3 ? 'low-stock' : ''}"><div><b>${item}</b>: ${stock[item].toFixed(1)} ${unit}</div><div style="font-size:10px">${runway < 0 ? '0 days' : runway + 'd left'}</div></div>`;
             }
 
             dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
@@ -286,7 +296,7 @@
         function shareWeeklyReport() {
             const last7Days = new Date(); last7Days.setDate(last7Days.getDate() - 7);
             const ws = dbMaster.filter(i => new Date(i.date) >= last7Days && i.type === 'sale').reduce((a, b) => a + safeNum(b.amt), 0);
-            const msg = `🍄 *Oyster Farm Report* %0A💰 Sales: ₹${ws}%0A-----------------`;
+            const msg = `🍄 *Farm Status* %0A💰 Recent Sales: ₹${ws}`;
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 

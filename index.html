@@ -122,7 +122,7 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIUydcxYMuzFDw1ARVU2kie0msHaX6_CATRrLcpLjja4vTwOmnG6HP3ecZH9rYtv5i/exec"; 
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7aCgCsror0ec0-xxsdmqWVhtklMBj6ssc9v1i84EQHXMuFoKYBTxWzDBx0FzPGOBp/exec"; 
         let dbMaster = [];
         let myChart;
 
@@ -145,4 +145,109 @@
         }
 
         async function addData(type) {
-            const today = new Date().toISOString().split('T
+            const today = new Date().toISOString().split('T')[0];
+            let payload = { action: "add", type, date: document.getElementById(type==='exp'?'e-date':(type==='sale'?'s-date':'hw-date')).value || today, details: "", amt: 0, qty: 0, paidBy: "" };
+
+            if (type === 'exp') {
+                payload.details = document.getElementById('e-cat').value;
+                payload.amt = safeNum(document.getElementById('e-amt').value);
+                payload.qty = safeNum(document.getElementById('e-qty').value);
+                payload.paidBy = document.getElementById('e-paidBy').value;
+            } else if (type === 'sale') {
+                const q = safeNum(document.getElementById('s-qty').value);
+                const p = safeNum(document.getElementById('s-price').value);
+                payload.amt = q * p; payload.qty = q;
+                payload.details = "Sale: " + (document.getElementById('s-cust').value || "Retail");
+            } else if (type === 'yield') {
+                payload.amt = safeNum(document.getElementById('y-weight').value);
+                payload.details = "Harvest";
+            } else if (type === 'waste') {
+                const wType = document.getElementById('w-type').value;
+                payload.amt = safeNum(document.getElementById('w-val').value);
+                payload.details = "Waste: " + wType;
+            }
+
+            document.getElementById('status').innerText = "⌛ Saving...";
+            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            loadCloudData();
+            ['e-amt','e-qty','s-cust','s-qty','s-price','y-weight','w-val'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
+        }
+
+        async function deleteRow(rowId) {
+            if(!confirm("Delete this entry?")) return;
+            document.getElementById('status').innerText = "⌛ Deleting...";
+            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", rowId: rowId }) });
+            loadCloudData();
+        }
+
+        function calculateStock() {
+            let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0, "PP Bags": 0, "Rubber Bands": 0, "Cotton": 0, "Punnets": 0 };
+            dbMaster.forEach(i => {
+                if(i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += safeNum(i.qty);
+                if(i.type === 'yield') { s["Punnets"] -= (safeNum(i.amt) * 5); }
+                if(i.type === 'waste' && i.details.includes("Contaminated")) {
+                    s["PP Bags"] -= (safeNum(i.amt) * 0.1); s["Straw"] -= (safeNum(i.amt) * 0.5); s["Spawn"] -= (safeNum(i.amt) * 0.1); 
+                }
+            });
+            return s;
+        }
+
+        function renderAll() {
+            const body = document.getElementById('history-body');
+            body.innerHTML = '';
+            let te = 0, ts = 0;
+
+            const stock = calculateStock();
+            const sDisplay = document.getElementById('stock-display');
+            sDisplay.innerHTML = '';
+            for(let item in stock) {
+                const runway = dailyUsage[item] ? Math.floor(stock[item] / dailyUsage[item]) : 0;
+                const isLow = runway < 3;
+                sDisplay.innerHTML += `<div class="stock-item ${isLow ? 'low-stock' : ''}"><div><b>${item}</b>: ${stock[item].toFixed(1)}</div><div style="font-size:10px">${isLow ? '⚠️ Low' : runway + 'd left'}</div></div>`;
+            }
+
+            dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
+                const amt = safeNum(i.amt);
+                if(i.type === 'exp') te += amt;
+                if(i.type === 'sale') ts += amt;
+                body.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}${i.paidBy&&i.type==='exp' ? `<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>`:''}</td><td>₹${amt||i.qty}</td><td><span onclick="deleteRow(${i.rowId})">🗑️</span></td></tr>`;
+            });
+
+            document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
+            document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
+            document.getElementById('net-total').innerText = '₹' + (ts - te).toLocaleString('en-IN');
+            updateChart();
+        }
+
+        function shareWeeklyReport() {
+            const last7Days = new Date(); last7Days.setDate(last7Days.getDate() - 7);
+            const weeklyData = dbMaster.filter(i => new Date(i.date) >= last7Days);
+            
+            const ws = weeklyData.filter(i => i.type === 'sale').reduce((a, b) => a + safeNum(b.amt), 0);
+            const we = weeklyData.filter(i => i.type === 'exp').reduce((a, b) => a + safeNum(b.amt), 0);
+            const wh = weeklyData.filter(i => i.type === 'yield').reduce((a, b) => a + safeNum(b.amt), 0);
+            const ww = weeklyData.filter(i => i.type === 'waste').reduce((a, b) => a + safeNum(b.amt), 0);
+
+            const msg = `🍄 *Oyster Farm Weekly Report* 🍄%0A----------------------------------%0A💰 *Sales:* ₹${ws}%0A💸 *Expenses:* ₹${we}%0A📉 *Net Profit:* ₹${ws - we}%0A%0A🍄 *Harvest:* ${wh} kg%0A🗑️ *Waste:* ${ww} units%0A----------------------------------%0A_Generated via Farm Master Pro_`;
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            const dates = [...new Set(dbMaster.map(d => d.date))].sort().slice(-7);
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates.map(d => d.split('T')[0]),
+                    datasets: [
+                        { label: 'Sales', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'sale').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#27ae60', tension: 0.3 },
+                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c', tension: 0.3 }
+                    ]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+        }
+    </script>
+</body>
+</html>

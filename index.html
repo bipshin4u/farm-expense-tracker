@@ -35,19 +35,18 @@
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td { padding: 10px 4px; border-bottom: 1px solid #eee; }
         th { text-align: left; padding: 8px 4px; border-bottom: 2px solid #eee; color: #888; background: #fcfcfc; }
-        .sync-status { font-size: 10px; text-align: center; color: var(--success); margin-bottom: 5px; }
+        .sync-status { font-size: 10px; text-align: center; color: var(--success); margin-bottom: 5px; cursor: pointer; }
         
-        /* Edit Modal */
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; }
         .modal-content { background:white; margin:10% auto; padding:20px; width:80%; border-radius:12px; }
-
         .action-btn { font-size: 16px; cursor: pointer; padding: 0 5px; }
+        #history-search { background: #f0f2f5; border: none; padding: 8px 12px; margin-bottom: 10px; font-size: 12px; }
     </style>
 </head>
 <body>
 
     <div class="header-status">
-        <div id="status" class="sync-status">✓ Connected</div>
+        <div id="status" class="sync-status" onclick="alertDebug()">✓ Connected</div>
         <div class="grid" style="text-align: center;">
             <div><small>Active Bags</small><div id="active-bags" class="val">0</div></div>
             <div><small>Avg Yield/Bag</small><div id="yield-bag" class="val" style="color:var(--success)">0 kg</div></div>
@@ -99,8 +98,8 @@
                     <option value="sale">Record Sale</option>
                     <option value="exp">Record Expense</option>
                 </select>
-                <div id="f-sale"><input type="text" id="s-cust" placeholder="Customer"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-price" placeholder="Rate"><button style="background:var(--success)" onclick="addData('sale')">Save Sale</button></div>
-                <div id="f-exp" style="display:none"><select id="e-cat"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="Punnets">Punnets</option><option value="Labor">Labor</option></select><input type="number" id="e-amt" placeholder="Amount (₹)"><input type="number" id="e-qty" placeholder="Qty"><button style="background:var(--danger)" onclick="addData('exp')">Save Expense</button></div>
+                <div id="f-sale"><input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets Sold"><input type="number" id="s-price" placeholder="Rate per Punnet"><button style="background:var(--success)" onclick="addData('sale')">Record Sale</button></div>
+                <div id="f-exp" style="display:none"><select id="e-cat"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="Punnets">Punnets</option><option value="Labor">Labor</option><option value="Misc">Misc</option></select><input type="number" id="e-amt" placeholder="Total Cost (₹)"><input type="number" id="e-qty" placeholder="Quantity Purchased"><button style="background:var(--danger)" onclick="addData('exp')">Record Expense</button></div>
             </div>
         </div>
 
@@ -124,24 +123,23 @@
     <div id="editModal">
         <div class="modal-content">
             <h3 style="margin-top:0">✏️ Edit Entry</h3>
-            <input type="hidden" id="edit-id">
-            <input type="hidden" id="edit-type">
+            <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
             <label><small>Date</small></label><input type="date" id="edit-date">
             <label><small>Details</small></label><input type="text" id="edit-details">
-            <label><small>Amount (₹ or kg)</small></label><input type="number" step="0.1" id="edit-amt">
+            <label><small>Amount</small></label><input type="number" step="0.1" id="edit-amt">
             <label><small>Quantity</small></label><input type="number" step="0.1" id="edit-qty">
-            <div class="grid">
-                <button onclick="closeEdit()">Cancel</button>
-                <button style="background:var(--success)" onclick="submitEdit()">Save Changes</button>
-            </div>
+            <div class="grid"><button onclick="closeEdit()">Cancel</button><button style="background:var(--success)" onclick="submitEdit()">Save Changes</button></div>
         </div>
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec";
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec"; 
         let dbMaster = [];
+        let lastError = "None";
         let dailyUsage = { "Straw": 15, "Spawn": 1.2, "Bavistine": 0.05, "Formalin": 0.1, "PP Bags": 0.2, "Rubber Bands": 20, "Punnets": 10 };
         const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
+
+        function alertDebug() { alert("Debug Info:\nURL: " + GOOGLE_SCRIPT_URL + "\nLast Error: " + lastError); }
 
         function openTab(evt, tN) {
             let tc = document.getElementsByClassName("tab-content");
@@ -161,10 +159,16 @@
             document.getElementById('status').innerText = "⌛ Syncing...";
             try {
                 const response = await fetch(GOOGLE_SCRIPT_URL);
+                if (!response.ok) throw new Error("HTTP Error " + response.status);
                 dbMaster = await response.json();
                 renderAll();
                 document.getElementById('status').innerText = "✓ Connected";
-            } catch (e) { document.getElementById('status').innerText = "⚠ Offline"; }
+                document.getElementById('status').style.color = "var(--success)";
+            } catch (e) { 
+                lastError = e.message;
+                document.getElementById('status').innerText = "⚠ Offline (Click for details)";
+                document.getElementById('status').style.color = "var(--danger)";
+            }
         }
 
         async function addData(type) {
@@ -182,18 +186,16 @@
             ['f-qty', 'y-weight', 'w-val', 's-cust', 's-qty', 's-price', 'e-amt', 'e-qty'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
         }
 
-        // --- EDIT FUNCTIONS ---
         function startEdit(id) {
             const item = dbMaster.find(i => i.rowId === id);
             document.getElementById('edit-id').value = item.rowId;
             document.getElementById('edit-type').value = item.type;
-            document.getElementById('edit-date').value = item.date.split('T')[0];
+            document.getElementById('edit-date').value = (item.date || "").split('T')[0];
             document.getElementById('edit-details').value = item.details;
             document.getElementById('edit-amt').value = item.amt;
             document.getElementById('edit-qty').value = item.qty;
             document.getElementById('editModal').style.display = 'block';
         }
-
         function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
 
         async function submitEdit() {
@@ -214,7 +216,7 @@
         }
 
         async function deleteRow(id) {
-            if(!confirm("Delete this entry permanently?")) return;
+            if(!confirm("Permanently delete this entry?")) return;
             document.getElementById('status').innerText = "⌛ Deleting...";
             await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", rowId: id }) });
             setTimeout(loadCloudData, 1500);
@@ -230,7 +232,6 @@
         }
 
         function renderAll() {
-            // Re-using logic for stock and dashboard from previous working versions
             let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0, "PP Bags": 0, "Rubber Bands": 0, "Punnets": 0 };
             let activeB = 0, forecastY = 0, totalF = 0, totalY = 0, wastedB = 0;
             const now = new Date();
@@ -269,7 +270,7 @@
             dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
                 if(i.type === 'exp') te += safeNum(i.amt); if(i.type === 'sale') ts += safeNum(i.amt);
                 const valStr = (i.type === 'exp' || i.type === 'sale') ? '₹'+(i.amt || 0) : (i.qty || i.amt);
-                hb.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}</td><td>${valStr}</td>
+                hb.innerHTML += `<tr><td>${(i.date || "").split('T')[0]}</td><td>${i.details}</td><td>${valStr}</td>
                 <td><span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span> <span class="action-btn" onclick="deleteRow(${i.rowId})">🗑️</span></td></tr>`;
             });
             document.getElementById('exp-total').innerText = '₹' + te;

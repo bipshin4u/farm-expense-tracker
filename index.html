@@ -21,12 +21,10 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-sale { background: var(--success); } .btn-yield { background: var(--yield); } .btn-waste { background: #e67e22; }
-        .btn-share { background: #25D366; margin-top: 10px; } /* WhatsApp Green */
-        
+        .btn-share { background: #25D366; margin-top: 10px; }
         .stock-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
         .stock-item { padding: 10px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
         .low-stock { border-left-color: var(--danger); background: #fff1f1; color: var(--danger); }
-        
         .table-container { overflow-x: auto; max-height: 400px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
@@ -41,7 +39,7 @@
 
     <div class="card">
         <h2>📦 Stock Runway</h2>
-        <div class="stock-grid" id="stock-display"></div>
+        <div id="stock-display" class="stock-grid"></div>
     </div>
 
     <div class="card grid">
@@ -69,8 +67,18 @@
                 <option value="Cotton">Cotton (Rolls)</option>
                 <option value="Punnets">Punnets (Qty)</option>
             </optgroup>
-            <optgroup label="Labor">
-                <option value="Worker">Labor Payment</option>
+            <optgroup label="Labor Payments">
+                <option value="Pallavi Mavshi">Pallavi Mavshi</option>
+                <option value="Sangeeta Mavshi">Sangeeta Mavshi</option>
+                <option value="Bhabhi">Bhabhi</option>
+                <option value="Other Worker">Other Worker</option>
+            </optgroup>
+            <optgroup label="Fixed Costs">
+                <option value="Rent">Rent</option>
+                <option value="Electricity">Electricity</option>
+            </optgroup>
+            <optgroup label="General">
+                <option value="Miscellaneous">Miscellaneous / Other</option>
             </optgroup>
         </select>
         <select id="e-paidBy">
@@ -79,7 +87,7 @@
             <option value="Kotak">Kotak Account</option>
         </select>
         <input type="number" id="e-amt" placeholder="Total Cost (₹)">
-        <input type="number" id="e-qty" placeholder="Quantity Purchased">
+        <input type="number" id="e-qty" placeholder="Quantity (kg/L/Bags/etc)">
         <button onclick="addData('exp')">Save Expense</button>
     </div>
 
@@ -210,7 +218,7 @@
                 const amt = safeNum(i.amt);
                 if(i.type === 'exp') te += amt;
                 if(i.type === 'sale') ts += amt;
-                body.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}${i.paidBy&&i.type==='exp' ? `<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>`:''}</td><td>₹${amt||i.qty}</td><td><span onclick="deleteRow(${i.rowId})">🗑️</span></td></tr>`;
+                body.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}${i.paidBy&&i.type==='exp' ? `<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>`:''}</td><td>₹${amt||i.qty}</td><td><span onclick="deleteRow(${i.rowId})" style="cursor:pointer">🗑️</span></td></tr>`;
             });
 
             document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
@@ -222,13 +230,10 @@
         function shareWeeklyReport() {
             const last7Days = new Date(); last7Days.setDate(last7Days.getDate() - 7);
             const weeklyData = dbMaster.filter(i => new Date(i.date) >= last7Days);
-            
             const ws = weeklyData.filter(i => i.type === 'sale').reduce((a, b) => a + safeNum(b.amt), 0);
             const we = weeklyData.filter(i => i.type === 'exp').reduce((a, b) => a + safeNum(b.amt), 0);
             const wh = weeklyData.filter(i => i.type === 'yield').reduce((a, b) => a + safeNum(b.amt), 0);
-            const ww = weeklyData.filter(i => i.type === 'waste').reduce((a, b) => a + safeNum(b.amt), 0);
-
-            const msg = `🍄 *Oyster Farm Weekly Report* 🍄%0A----------------------------------%0A💰 *Sales:* ₹${ws}%0A💸 *Expenses:* ₹${we}%0A📉 *Net Profit:* ₹${ws - we}%0A%0A🍄 *Harvest:* ${wh} kg%0A🗑️ *Waste:* ${ww} units%0A----------------------------------%0A_Generated via Farm Master Pro_`;
+            const msg = `🍄 *Oyster Farm Weekly Report* 🍄%0A💰 *Sales:* ₹${ws}%0A💸 *Expenses:* ₹${we}%0A📉 *Net Profit:* ₹${ws - we}%0A🍄 *Harvest:* ${wh} kg%0A-----------------%0A_Sent via Farm Master Pro_`;
             window.open(`https://wa.me/?text=${msg}`, '_blank');
         }
 

@@ -10,6 +10,7 @@
             --straw: #f1c40f; --spawn: #9b59b6; --chem: #e67e22; --punnet: #3498db;
             --worker: #1abc9c; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50;
             --bipin: #8e44ad; --arjun: #2980b9; --kotak: #c0392b; --success: #27ae60;
+            --forecast: #6c5ce7;
         }
         body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); line-height: 1.4; }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -21,20 +22,16 @@
         .val { font-size: 1.3rem; font-weight: bold; display: block; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-sale { background: var(--success); } .btn-yield { background: var(--yield); } .btn-waste { background: #e67e22; }
-        .btn-share { background: #25D366; margin-top: 10px; }
+        .btn-fill { background: var(--worker); } .btn-sale { background: var(--success); } .btn-yield { background: var(--yield); } .btn-waste { background: #e67e22; }
         .stock-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
         .stock-item { padding: 10px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
         .low-stock { border-left-color: var(--danger); background: #fff1f1; color: var(--danger); }
-        .table-container { overflow-x: auto; max-height: 400px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
-        .acc-tag { font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; font-weight: bold; margin-left: 4px; }
-        .Bipin { background: var(--bipin); } .Arjun { background: var(--arjun); } .Kotak { background: var(--kotak); }
-        .actions { display: flex; gap: 10px; color: #888; cursor: pointer; }
-        #usage-settings { display: none; background: #fdfdfd; padding: 10px; border: 1px dashed #ccc; border-radius: 8px; margin-top: 10px; }
-        .settings-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
-        .settings-row input { width: 70px; padding: 4px; margin: 0; font-size: 12px; }
+        .forecast-card { background: var(--forecast); color: white; }
+        .prod-stat { text-align: center; border-right: 1px solid #eee; }
+        .prod-stat:last-child { border-right: none; }
+        .table-container { overflow-x: auto; max-height: 300px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        td, th { padding: 8px 4px; border-bottom: 1px solid #eee; text-align: left; }
     </style>
 </head>
 <body>
@@ -42,125 +39,119 @@
     <h1 style="text-align:center; margin-bottom:5px;">🍄 Farm Master Pro</h1>
     <div id="status" class="sync-status">✓ Connected</div>
 
+    <div class="card forecast-card">
+        <div class="header-row" style="border-color: rgba(255,255,255,0.2)">
+            <h2 style="color:white">🔮 10-Day Harvest Forecast</h2>
+        </div>
+        <div class="grid">
+            <div class="prod-stat" style="border-color: rgba(255,255,255,0.2)">
+                <small>Expected Yield</small>
+                <div id="fc-yield" class="val">0 kg</div>
+            </div>
+            <div class="prod-stat">
+                <small>Required Punnets</small>
+                <div id="fc-punnets" class="val">0 pcs</div>
+            </div>
+        </div>
+        <p id="fc-msg" style="font-size: 11px; margin-top: 10px; text-align: center; opacity: 0.9;"></p>
+    </div>
+
+    <div class="card grid">
+        <div class="full"><h2>🏭 Production Dashboard</h2></div>
+        <div class="prod-stat"><small>Active Bags</small><div id="active-bags" class="val">0</div></div>
+        <div class="prod-stat"><small>Waste Rate</small><div id="waste-rate" class="val" style="color:var(--danger)">0%</div></div>
+        <div class="prod-stat"><small>Avg Yield/Bag</small><div id="yield-bag" class="val" style="color:var(--success)">0kg</div></div>
+    </div>
+
+    <div class="card">
+        <h2>🛠 Daily Bag Filling</h2>
+        <div class="grid">
+            <input type="date" id="f-date">
+            <input type="number" id="f-qty" placeholder="Bags filled">
+        </div>
+        <button class="btn-fill" onclick="addData('fill')">Log Bags Prepared</button>
+    </div>
+
     <div class="card">
         <div class="header-row">
             <h2>📦 Stock Runway</h2>
             <span onclick="toggleSettings()" style="cursor:pointer; font-size: 1.2rem;">⚙️</span>
         </div>
-        
-        <div id="usage-settings">
-            <small style="color:#666; display:block; margin-bottom:10px;">Set actual daily use to fix "Days Left":</small>
+        <div id="usage-settings" style="display:none;">
             <div id="usage-inputs"></div>
             <button onclick="saveUsageSettings()" style="padding:8px; font-size:12px; background:var(--arjun)">Save Usage Rates</button>
         </div>
-
-        <div id="stock-display" class="stock-grid" style="margin-top:10px;"></div>
+        <div id="stock-display" class="stock-grid"></div>
     </div>
 
     <div class="card grid">
-        <div class="full"><small>Net Profit/Loss (Total)</small><div id="net-total" class="val">₹0</div></div>
+        <div class="full"><small>Net Profit/Loss</small><div id="net-total" class="val">₹0</div></div>
         <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
         <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
-        <button class="btn-share full" onclick="shareWeeklyReport()">📤 Share Weekly WhatsApp Report</button>
-    </div>
-
-    <div class="card"><canvas id="financeChart"></canvas></div>
-
-    <div class="card" id="expense-form">
-        <h2>Add Expense</h2>
-        <input type="date" id="e-date">
-        <select id="e-cat">
-            <optgroup label="Raw Materials">
-                <option value="Straw">Straw (kg)</option>
-                <option value="Spawn">Spawn (kg)</option>
-                <option value="Bavistine">Bavistine (kg)</option>
-                <option value="Formalin">Formalin (L)</option>
-            </optgroup>
-            <optgroup label="Packaging">
-                <option value="PP Bags">PP Bags (kg)</option>
-                <option value="Rubber Bands">Rubber Bands (kg)</option>
-                <option value="Cotton">Cotton (Rolls)</option>
-                <option value="Punnets">Punnets (Qty)</option>
-            </optgroup>
-            <optgroup label="Labor Payments">
-                <option value="Pallavi Mavshi">Pallavi Mavshi</option>
-                <option value="Sangeeta Mavshi">Sangeeta Mavshi</option>
-                <option value="Bhabhi">Bhabhi</option>
-                <option value="Other Worker">Other Worker</option>
-            </optgroup>
-            <optgroup label="Fixed Costs">
-                <option value="Rent">Rent</option>
-                <option value="Electricity">Electricity</option>
-            </optgroup>
-            <optgroup label="General">
-                <option value="Miscellaneous">Miscellaneous</option>
-            </optgroup>
-        </select>
-        <select id="e-paidBy">
-            <option value="Bipin">Bipin</option>
-            <option value="Arjun">Arjun</option>
-            <option value="Kotak">Kotak Account</option>
-        </select>
-        <input type="number" id="e-amt" placeholder="Total Cost (₹)">
-        <input type="number" id="e-qty" placeholder="Quantity Purchased">
-        <button onclick="addData('exp')">Save Expense</button>
-    </div>
-
-    <div class="card">
-        <h2>Add Sale</h2>
-        <input type="date" id="s-date">
-        <input type="text" id="s-cust" placeholder="Customer Name">
-        <input type="number" id="s-qty" placeholder="Punnets Sold">
-        <input type="number" id="s-price" placeholder="Rate (₹)">
-        <button class="btn-sale" onclick="addData('sale')">Save Sale</button>
     </div>
 
     <div class="card">
         <h2>Harvest / Wastage</h2>
-        <input type="date" id="hw-date">
         <div class="grid">
             <div>
                 <input type="number" step="0.1" id="y-weight" placeholder="Yield (kg)">
                 <button class="btn-yield" onclick="addData('yield')">Save Yield</button>
             </div>
             <div>
-                <select id="w-type">
-                    <option value="Mushroom">Mushroom (kg)</option>
-                    <option value="Contaminated Bag">Contaminated (Bag)</option>
-                </select>
-                <input type="number" step="0.1" id="w-val" placeholder="Qty or kg">
+                <select id="w-type"><option value="Contaminated Bag">Contaminated Bag</option><option value="Mushroom Waste">Mushroom Waste (kg)</option></select>
+                <input type="number" step="0.1" id="w-val" placeholder="Qty">
                 <button class="btn-waste" onclick="addData('waste')">Log Waste</button>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h2>History</h2>
-        <div class="table-container">
-            <table>
-                <thead><tr><th>Date</th><th>Detail</th><th>Value</th><th>Action</th></tr></thead>
-                <tbody id="history-body"></tbody>
-            </table>
+        <h2>Sales & Expenses</h2>
+        <select id="quick-type" onchange="toggleForm()">
+            <option value="sale">New Sale</option>
+            <option value="exp">New Expense</option>
+        </select>
+        <div id="sale-form">
+            <input type="text" id="s-cust" placeholder="Customer Name">
+            <input type="number" id="s-qty" placeholder="Punnets">
+            <input type="number" id="s-price" placeholder="Rate">
+            <button class="btn-sale" onclick="addData('sale')">Save Sale</button>
         </div>
+        <div id="exp-form" style="display:none">
+            <select id="e-cat">
+                <option value="Straw">Straw</option><option value="Spawn">Spawn</option>
+                <option value="Punnets">Punnets</option><option value="Rubber Bands">Rubber Bands</option>
+                <option value="Labor">Labor</option>
+            </select>
+            <input type="number" id="e-amt" placeholder="Amount (₹)">
+            <input type="number" id="e-qty" placeholder="Quantity">
+            <button onclick="addData('exp')">Save Expense</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>History</h2>
+        <div class="table-container"><table><tbody id="history-body"></tbody></table></div>
     </div>
 
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFMQadF8BEZ_7T5VW3VfprN4oa_srF_nSfXvlM6RVV6oEnERmCp-UymFl_ts3nEd6Z/exec"; 
         let dbMaster = [];
-        let myChart;
-
         let dailyUsage = JSON.parse(localStorage.getItem('mushroomUsage')) || {
-            "Straw": 5, "Spawn": 0.5, "Bavistine": 0.05, "Formalin": 0.1, 
-            "PP Bags": 0.2, "Rubber Bands": 0.05, "Cotton": 0.1, "Punnets": 10
+            "Straw": 15, "Spawn": 1.2, "Bavistine": 0.05, "Formalin": 0.1, 
+            "PP Bags": 0.2, "Rubber Bands": 20, "Cotton": 0.1, "Punnets": 10
         };
 
-        const units = { "Straw": "kg", "Spawn": "kg", "Bavistine": "kg", "Formalin": "L", "PP Bags": "kg", "Rubber Bands": "kg", "Cotton": "rolls", "Punnets": "pcs" };
+        const units = { "Straw": "kg", "Spawn": "kg", "Bavistine": "kg", "Formalin": "L", "PP Bags": "kg", "Rubber Bands": "pcs", "Cotton": "rolls", "Punnets": "pcs" };
         const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
 
-        window.onload = () => {
-            loadUsageInputs();
-            loadCloudData();
-        };
+        window.onload = () => { loadUsageInputs(); loadCloudData(); };
+
+        function toggleForm() {
+            const type = document.getElementById('quick-type').value;
+            document.getElementById('sale-form').style.display = type === 'sale' ? 'block' : 'none';
+            document.getElementById('exp-form').style.display = type === 'exp' ? 'block' : 'none';
+        }
 
         function toggleSettings() {
             const panel = document.getElementById('usage-settings');
@@ -171,21 +162,14 @@
             const container = document.getElementById('usage-inputs');
             container.innerHTML = '';
             for (let item in dailyUsage) {
-                container.innerHTML += `
-                    <div class="settings-row">
-                        <span>${item} (${units[item]}/day)</span>
-                        <input type="number" step="0.01" id="set-${item}" value="${dailyUsage[item]}">
-                    </div>`;
+                container.innerHTML += `<div class="settings-row" style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>${item}</span><input type="number" style="width:60px; padding:2px" id="set-${item}" value="${dailyUsage[item]}"></div>`;
             }
         }
 
         function saveUsageSettings() {
-            for (let item in dailyUsage) {
-                dailyUsage[item] = safeNum(document.getElementById(`set-${item}`).value);
-            }
+            for (let item in dailyUsage) dailyUsage[item] = safeNum(document.getElementById(`set-${item}`).value);
             localStorage.setItem('mushroomUsage', JSON.stringify(dailyUsage));
-            toggleSettings();
-            renderAll();
+            toggleSettings(); renderAll();
         }
 
         async function loadCloudData() {
@@ -200,18 +184,19 @@
 
         async function addData(type) {
             const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-            let dateInput = document.getElementById(type==='exp'?'e-date':(type==='sale'?'s-date':'hw-date')).value || today;
-            let payload = { action: "add", type, date: dateInput, details: "", amt: 0, qty: 0, paidBy: "" };
+            let payload = { action: "add", type, date: today, details: "", amt: 0, qty: 0, paidBy: "Bipin" };
 
-            if (type === 'exp') {
+            if (type === 'fill') {
+                payload.qty = safeNum(document.getElementById('f-qty').value);
+                payload.details = "Bags Filled";
+            } else if (type === 'exp') {
                 payload.details = document.getElementById('e-cat').value;
                 payload.amt = safeNum(document.getElementById('e-amt').value);
                 payload.qty = safeNum(document.getElementById('e-qty').value);
-                payload.paidBy = document.getElementById('e-paidBy').value;
             } else if (type === 'sale') {
                 const q = safeNum(document.getElementById('s-qty').value);
-                const p = safeNum(document.getElementById('s-price').value);
-                payload.amt = q * p; payload.qty = q;
+                payload.amt = q * safeNum(document.getElementById('s-price').value);
+                payload.qty = q;
                 payload.details = "Sale: " + (document.getElementById('s-cust').value || "Retail");
             } else if (type === 'yield') {
                 payload.amt = safeNum(document.getElementById('y-weight').value);
@@ -223,98 +208,74 @@
 
             document.getElementById('status').innerText = "⌛ Saving...";
             await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            setTimeout(loadCloudData, 1000);
-            ['e-amt','e-qty','s-cust','s-qty','s-price','y-weight','w-val'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
+            setTimeout(loadCloudData, 1200);
         }
 
-        function editRow(rowId) {
-            const item = dbMaster.find(i => i.rowId == rowId);
-            if (!item) return;
-            const itemDate = item.date.split('T')[0];
-            if (item.type === 'exp') {
-                document.getElementById('e-date').value = itemDate;
-                document.getElementById('e-cat').value = item.details;
-                document.getElementById('e-amt').value = item.amt;
-                document.getElementById('e-qty').value = item.qty;
-                document.getElementById('e-paidBy').value = item.paidBy;
-                document.getElementById('expense-form').scrollIntoView();
-            } else if (item.type === 'sale') {
-                document.getElementById('s-date').value = itemDate;
-                document.getElementById('s-cust').value = item.details.replace("Sale: ", "");
-                document.getElementById('s-qty').value = item.qty;
-                document.getElementById('s-price').value = item.amt / (item.qty || 1);
-            }
-            alert("Loaded to form. Update and click Save. Delete old row manually.");
-        }
-
-        async function deleteRow(rowId) {
-            if(!confirm("Delete this entry?")) return;
-            document.getElementById('status').innerText = "⌛ Deleting...";
-            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", rowId: rowId }) });
-            setTimeout(loadCloudData, 500);
-        }
-
-        function calculateStock() {
+        function calculateMetrics() {
             let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0, "PP Bags": 0, "Rubber Bands": 0, "Cotton": 0, "Punnets": 0 };
+            let totalFilled = 0, wastedBags = 0, totalYield = 0, activeBags = 0, forecastYield = 0;
+            const now = new Date();
+            const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(now.getDate() - 30);
+
             dbMaster.forEach(i => {
-                if(i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += safeNum(i.qty);
-                if(i.type === 'yield') { s["Punnets"] -= (safeNum(i.amt) * 5); }
-                if(i.type === 'waste' && i.details.includes("Contaminated")) {
-                    s["PP Bags"] -= (safeNum(i.amt) * 0.1); s["Straw"] -= (safeNum(i.amt) * 0.5); s["Spawn"] -= (safeNum(i.amt) * 0.1); 
+                const val = safeNum(i.amt); const qty = safeNum(i.qty);
+                const itemDate = new Date(i.date);
+
+                if (i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += qty;
+                if (i.type === 'fill') {
+                    totalFilled += qty;
+                    if(itemDate >= thirtyDaysAgo) activeBags += qty;
+                    s["Straw"] -= (qty * 1.5); s["Spawn"] -= (qty * 0.12); s["Rubber Bands"] -= (qty * 2); s["PP Bags"] -= (qty * 0.05);
+                    
+                    // Forecast Logic: Bags filled 15-25 days ago are peaking now/soon
+                    const daysOld = (now - itemDate) / (1000 * 60 * 60 * 24);
+                    if (daysOld >= 10 && daysOld <= 25) forecastYield += (qty * 0.6); // Assume 0.6kg yield per bag
+                }
+                if (i.type === 'yield') { s["Punnets"] -= (val * 5); totalYield += val; }
+                if (i.type === 'waste' && i.details.includes("Contaminated")) {
+                    wastedBags += val;
+                    if(itemDate >= thirtyDaysAgo) activeBags -= val;
+                    forecastYield -= (val * 0.6);
                 }
             });
-            return s;
+            return { s, totalFilled, wastedBags, totalYield, activeBags, forecastYield };
         }
 
         function renderAll() {
-            const body = document.getElementById('history-body');
-            body.innerHTML = '';
-            let te = 0, ts = 0;
-            const stock = calculateStock();
-            const sDisplay = document.getElementById('stock-display');
-            sDisplay.innerHTML = '';
-            for(let item in stock) {
-                const rate = dailyUsage[item] || 0.001;
-                const runway = Math.floor(stock[item] / rate);
-                const unit = units[item];
-                sDisplay.innerHTML += `<div class="stock-item ${runway < 3 ? 'low-stock' : ''}"><div><b>${item}</b>: ${stock[item].toFixed(1)} ${unit}</div><div style="font-size:10px">${runway < 0 ? '0 days' : runway + 'd left'}</div></div>`;
+            const data = calculateMetrics();
+            document.getElementById('active-bags').innerText = Math.max(0, data.activeBags);
+            document.getElementById('waste-rate').innerText = (data.totalFilled > 0 ? (data.wastedBags/data.totalFilled*100).toFixed(1) : 0) + '%';
+            document.getElementById('yield-bag').innerText = (data.totalFilled > 0 ? (data.totalYield/(data.totalFilled - data.wastedBags || 1)).toFixed(2) : 0) + 'kg';
+
+            // Forecast Display
+            const estYield = Math.max(0, data.forecastYield).toFixed(1);
+            const reqPunnets = Math.ceil(estYield * 5);
+            document.getElementById('fc-yield').innerText = estYield + " kg";
+            document.getElementById('fc-punnets').innerText = reqPunnets + " pcs";
+            
+            if(data.s["Punnets"] < reqPunnets) {
+                document.getElementById('fc-msg').innerText = `⚠️ Warning: You need ${reqPunnets} punnets but only have ${data.s["Punnets"].toFixed(0)}. Buy soon!`;
+                document.getElementById('fc-msg').style.color = "#ffbe76";
+            } else {
+                document.getElementById('fc-msg').innerText = "✅ Stock looks good for upcoming harvest.";
+                document.getElementById('fc-msg').style.color = "white";
             }
 
-            dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
-                const amt = safeNum(i.amt);
-                let valStr = (i.type === 'exp' || i.type === 'sale') ? `₹${amt}` : (i.type === 'yield' ? `${amt} kg` : `${amt} ${i.details.includes('Mushroom')?'kg':'Bags'}`);
-                if(i.type === 'exp') te += amt;
-                if(i.type === 'sale') ts += amt;
-                body.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}${i.paidBy&&i.type==='exp'?`<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>`:''}</td><td>${valStr}</td><td><div class="actions"><span onclick="editRow(${i.rowId})">✏️</span><span onclick="deleteRow(${i.rowId})">🗑️</span></div></td></tr>`;
-            });
-            document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
-            document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
-            document.getElementById('net-total').innerText = '₹' + (ts - te).toLocaleString('en-IN');
-            updateChart();
-        }
+            const sDisplay = document.getElementById('stock-display'); sDisplay.innerHTML = '';
+            for(let item in data.s) {
+                const runway = Math.floor(data.s[item] / (dailyUsage[item] || 0.001));
+                sDisplay.innerHTML += `<div class="stock-item ${runway < 3 ? 'low-stock' : ''}"><div><b>${item}</b>: ${data.s[item].toFixed(1)}</div><div>${runway < 0 ? 'Empty' : runway + 'd'}</div></div>`;
+            }
 
-        function shareWeeklyReport() {
-            const last7Days = new Date(); last7Days.setDate(last7Days.getDate() - 7);
-            const ws = dbMaster.filter(i => new Date(i.date) >= last7Days && i.type === 'sale').reduce((a, b) => a + safeNum(b.amt), 0);
-            const msg = `🍄 *Farm Status* %0A💰 Recent Sales: ₹${ws}`;
-            window.open(`https://wa.me/?text=${msg}`, '_blank');
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('financeChart').getContext('2d');
-            if (myChart) myChart.destroy();
-            const dates = [...new Set(dbMaster.map(d => d.date.split('T')[0]))].sort().slice(-7);
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [
-                        { label: 'Sales', data: dates.map(d => dbMaster.filter(i => i.date.startsWith(d) && i.type === 'sale').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#27ae60', tension: 0.3 },
-                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date.startsWith(d) && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c', tension: 0.3 }
-                    ]
-                },
-                options: { plugins: { legend: { display: false } } }
+            const body = document.getElementById('history-body'); body.innerHTML = '';
+            let te = 0, ts = 0;
+            dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 10).forEach(i => {
+                const amt = safeNum(i.amt); if(i.type === 'exp') te += amt; if(i.type === 'sale') ts += amt;
+                body.innerHTML += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}</td><td>${amt || i.qty}</td></tr>`;
             });
+            document.getElementById('exp-total').innerText = '₹' + te;
+            document.getElementById('sales-total').innerText = '₹' + ts;
+            document.getElementById('net-total').innerText = '₹' + (ts - te);
         }
     </script>
 </body>

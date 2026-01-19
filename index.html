@@ -11,7 +11,7 @@
             --worker: #1abc9c; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50;
             --bipin: #8e44ad; --arjun: #2980b9; --kotak: #c0392b; --success: #27ae60;
         }
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; padding: 15px; color: var(--dark); line-height: 1.4; }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .sync-status { font-size: 11px; text-align: center; color: var(--success); margin-bottom: 10px; font-weight: bold; }
         h2 { margin-top: 0; font-size: 1rem; border-bottom: 2px solid #eee; padding-bottom: 8px; margin-bottom: 10px; text-transform: uppercase; }
@@ -21,16 +21,17 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
         button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
         .btn-sale { background: var(--success); } .btn-yield { background: var(--yield); } .btn-waste { background: #e67e22; }
-        .stock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .stock-item { padding: 8px; border-radius: 8px; background: #f8f9fa; border-left: 4px solid #ddd; font-size: 11px; }
-        .low-stock { border-left-color: var(--danger); background: #fff1f1; color: var(--danger); font-weight: bold; }
-        .table-container { overflow-x: auto; max-height: 500px; }
+        .btn-share { background: #25D366; margin-top: 10px; } /* WhatsApp Green */
+        
+        .stock-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .stock-item { padding: 10px; border-radius: 8px; background: #f8f9fa; border-left: 5px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .low-stock { border-left-color: var(--danger); background: #fff1f1; color: var(--danger); }
+        
+        .table-container { overflow-x: auto; max-height: 400px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
-        .tag { padding: 2px 5px; border-radius: 4px; color: white; font-size: 9px; font-weight: bold; text-transform: uppercase; }
-        .acc-tag { font-size: 9px; padding: 1px 4px; border-radius: 3px; color: white; font-weight: bold; margin-left: 4px; }
+        .acc-tag { font-size: 9px; padding: 2px 5px; border-radius: 3px; color: white; font-weight: bold; margin-left: 4px; }
         .Bipin { background: var(--bipin); } .Arjun { background: var(--arjun); } .Kotak { background: var(--kotak); }
-        .action-btn { background: none; color: #ccc; width: auto; padding: 5px; font-size: 14px; cursor: pointer;}
     </style>
 </head>
 <body>
@@ -39,14 +40,15 @@
     <div id="status" class="sync-status">✓ Connected</div>
 
     <div class="card">
-        <h2>📦 Stock Monitor</h2>
+        <h2>📦 Stock Runway</h2>
         <div class="stock-grid" id="stock-display"></div>
     </div>
 
     <div class="card grid">
-        <div class="full"><small>Net Profit/Loss</small><div id="net-total" class="val">₹0</div></div>
+        <div class="full"><small>Net Profit/Loss (Total)</small><div id="net-total" class="val">₹0</div></div>
         <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
         <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
+        <button class="btn-share full" onclick="shareWeeklyReport()">📤 Share Weekly WhatsApp Report</button>
     </div>
 
     <div class="card"><canvas id="financeChart"></canvas></div>
@@ -56,29 +58,28 @@
         <input type="date" id="e-date">
         <select id="e-cat">
             <optgroup label="Raw Materials">
-                <option value="Straw">Straw</option>
-                <option value="Spawn">Spawn</option>
-                <option value="Bavistine">Bavistine</option>
-                <option value="Formalin">Formalin</option>
+                <option value="Straw">Straw (kg)</option>
+                <option value="Spawn">Spawn (kg)</option>
+                <option value="Bavistine">Bavistine (kg)</option>
+                <option value="Formalin">Formalin (L)</option>
             </optgroup>
             <optgroup label="Packaging">
-                <option value="PP Bags">PP Bags</option>
-                <option value="Rubber Bands">Rubber Bands</option>
-                <option value="Cotton">Non-absorbent Cotton</option>
-                <option value="Punnets">Plastic Punnets</option>
+                <option value="PP Bags">PP Bags (kg)</option>
+                <option value="Rubber Bands">Rubber Bands (kg)</option>
+                <option value="Cotton">Cotton (Rolls)</option>
+                <option value="Punnets">Punnets (Qty)</option>
             </optgroup>
             <optgroup label="Labor">
-                <option value="Worker">Pallavi Mavshi</option>
-                <option value="Worker">Bhabhi</option>
+                <option value="Worker">Labor Payment</option>
             </optgroup>
         </select>
         <select id="e-paidBy">
             <option value="Bipin">Bipin</option>
             <option value="Arjun">Arjun</option>
-            <option value="Kotak">Kotak</option>
+            <option value="Kotak">Kotak Account</option>
         </select>
-        <input type="number" id="e-amt" placeholder="Amount (₹)">
-        <input type="number" id="e-qty" placeholder="Quantity">
+        <input type="number" id="e-amt" placeholder="Total Cost (₹)">
+        <input type="number" id="e-qty" placeholder="Quantity Purchased">
         <button onclick="addData('exp')">Save Expense</button>
     </div>
 
@@ -96,24 +97,22 @@
         <input type="date" id="hw-date">
         <div class="grid">
             <div>
-                <label><small>Good Yield (kg)</small></label>
-                <input type="number" step="0.1" id="y-weight" placeholder="Weight">
+                <input type="number" step="0.1" id="y-weight" placeholder="Good Yield (kg)">
                 <button class="btn-yield" onclick="addData('yield')">Save Yield</button>
             </div>
             <div>
-                <label><small>Waste Type</small></label>
-                <select id="w-type" onchange="updateWastePlaceholder()">
+                <select id="w-type">
                     <option value="Mushroom">Mushroom (kg)</option>
                     <option value="Contaminated Bag">Contaminated (Bag)</option>
                 </select>
-                <input type="number" step="0.1" id="w-val" placeholder="Weight (kg)">
+                <input type="number" step="0.1" id="w-val" placeholder="Value">
                 <button class="btn-waste" onclick="addData('waste')">Log Waste</button>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h2>Recent History</h2>
+        <h2>History</h2>
         <div class="table-container">
             <table>
                 <thead><tr><th>Date</th><th>Detail</th><th>Value</th><th></th></tr></thead>
@@ -126,15 +125,12 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIUydcxYMuzFDw1ARVU2kie0msHaX6_CATRrLcpLjja4vTwOmnG6HP3ecZH9rYtv5i/exec"; 
         let dbMaster = [];
         let myChart;
-        const limits = { "Straw": 5, "Spawn": 2, "PP Bags": 50, "Punnets": 100 };
 
-        // HELPER: Safety function to ensure numbers are never blank/NaN
+        const dailyUsage = {
+            "Straw": 5, "Spawn": 0.5, "Bavistine": 0.05, "Formalin": 0.1, "PP Bags": 0.2, "Rubber Bands": 0.05, "Cotton": 0.1, "Punnets": 10
+        };
+
         const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
-
-        function updateWastePlaceholder() {
-            const type = document.getElementById('w-type').value;
-            document.getElementById('w-val').placeholder = type === "Mushroom" ? "Weight (kg)" : "Bags (Qty)";
-        }
 
         window.onload = loadCloudData;
 
@@ -144,110 +140,9 @@
                 const response = await fetch(GOOGLE_SCRIPT_URL);
                 dbMaster = await response.json();
                 renderAll();
-                document.getElementById('status').innerText = "✓ Synced";
+                document.getElementById('status').innerText = "✓ Connected";
             } catch (e) { document.getElementById('status').innerText = "⚠ Offline"; }
         }
 
         async function addData(type) {
-            const today = new Date().toISOString().split('T')[0];
-            let payload = { action: "add", type, date: document.getElementById(type==='exp'?'e-date':(type==='sale'?'s-date':'hw-date')).value || today, details: "", amt: 0, qty: 0, paidBy: "" };
-
-            if (type === 'exp') {
-                payload.details = document.getElementById('e-cat').value;
-                payload.amt = safeNum(document.getElementById('e-amt').value);
-                payload.qty = safeNum(document.getElementById('e-qty').value);
-                payload.paidBy = document.getElementById('e-paidBy').value;
-            } else if (type === 'sale') {
-                const q = safeNum(document.getElementById('s-qty').value);
-                const p = safeNum(document.getElementById('s-price').value);
-                payload.amt = q * p; payload.qty = q;
-                payload.details = document.getElementById('s-cust').value || "Retail Sale";
-            } else if (type === 'yield') {
-                payload.amt = safeNum(document.getElementById('y-weight').value);
-                payload.details = "Harvest";
-            } else if (type === 'waste') {
-                const wType = document.getElementById('w-type').value;
-                payload.amt = safeNum(document.getElementById('w-val').value);
-                payload.details = "Waste: " + wType;
-            }
-
-            document.getElementById('status').innerText = "⌛ Saving...";
-            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            loadCloudData();
-            ['e-amt','e-qty','s-cust','s-qty','s-price','y-weight','w-val'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
-        }
-
-        async function deleteRow(rowId) {
-            if(!confirm("Delete this entry?")) return;
-            document.getElementById('status').innerText = "⌛ Deleting...";
-            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", rowId: rowId }) });
-            loadCloudData();
-        }
-
-        function calculateStock() {
-            let s = { "Straw": 0, "Spawn": 0, "PP Bags": 0, "Punnets": 0, "Rubber Bands": 0, "Cotton": 0 };
-            dbMaster.forEach(i => {
-                const amt = safeNum(i.amt);
-                const qty = safeNum(i.qty);
-                if(i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += qty;
-                if(i.type === 'yield') { s["PP Bags"] -= (amt * 2); s["Punnets"] -= (amt * 5); }
-                if(i.type === 'waste' && i.details.includes("Contaminated")) {
-                    s["PP Bags"] -= amt; s["Straw"] -= (amt * 0.5); s["Spawn"] -= (amt * 0.1); 
-                }
-            });
-            return s;
-        }
-
-        function renderAll() {
-            const body = document.getElementById('history-body');
-            body.innerHTML = '';
-            let te = 0, ts = 0;
-
-            const stock = calculateStock();
-            const sDisplay = document.getElementById('stock-display');
-            sDisplay.innerHTML = '';
-            for(let item in stock) {
-                let low = stock[item] <= (limits[item] || 0);
-                sDisplay.innerHTML += `<div class="stock-item ${low ? 'low-stock' : ''}">${item}: ${stock[item].toFixed(1)}</div>`;
-            }
-
-            dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach((i, idx) => {
-                const amt = safeNum(i.amt);
-                let valStr = "";
-                if(i.type === 'exp') { te += amt; valStr = `<span style="color:var(--danger)">-₹${amt}</span>`; }
-                else if(i.type === 'sale') { ts += amt; valStr = `<span style="color:var(--success)">+₹${amt}</span>`; }
-                else if(i.type === 'yield') { valStr = `${amt}kg`; }
-                else if(i.type === 'waste') { valStr = `<span style="color:var(--danger)">${amt}${i.details.includes('Mushroom')?'kg':' Bags'}</span>`; }
-
-                body.innerHTML += `<tr>
-                    <td>${i.date.split('T')[0]}</td>
-                    <td>${i.details} ${i.paidBy && i.type==='exp' ? `<span class="acc-tag ${i.paidBy}">${i.paidBy[0]}</span>` : ''}</td>
-                    <td>${valStr}</td>
-                    <td><span class="action-btn" onclick="deleteRow(${i.rowId})">🗑️</span></td>
-                </tr>`;
-            });
-
-            document.getElementById('exp-total').innerText = '₹' + te.toLocaleString('en-IN');
-            document.getElementById('sales-total').innerText = '₹' + ts.toLocaleString('en-IN');
-            document.getElementById('net-total').innerText = '₹' + (ts - te).toLocaleString('en-IN');
-            updateChart();
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('financeChart').getContext('2d');
-            if (myChart) myChart.destroy();
-            const dates = [...new Set(dbMaster.map(d => d.date))].sort();
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates.map(d => d.split('T')[0]),
-                    datasets: [
-                        { label: 'Sales', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'sale').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#27ae60' },
-                        { label: 'Expenses', data: dates.map(d => dbMaster.filter(i => i.date === d && i.type === 'exp').reduce((a,b)=>a+safeNum(b.amt),0)), borderColor: '#e74c3c' }
-                    ]
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+            const today = new Date().toISOString().split('T

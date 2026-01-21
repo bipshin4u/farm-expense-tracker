@@ -8,7 +8,8 @@
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         
-        .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 100; }
+        /* Sticky Top Status */
+        .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .main-container { padding: 10px 15px; }
         
         .tab-bar { display: flex; background: #eee; margin-bottom: 15px; border-radius: 10px; padding: 4px; }
@@ -20,18 +21,23 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Account Row Colors */
+        /* Row Highlighting */
         .row-arjun { background-color: #e3f2fd !important; }
         .row-kotak { background-color: #fff9c4 !important; }
         .row-waste { color: var(--danger); background-color: #ffebee !important; }
 
         .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .history-header { padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; }
-        .search-bar { padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
+        
+        /* Sticky History Header */
+        .history-header { 
+            padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; 
+            position: sticky; top: 70px; z-index: 150; 
+        }
+        .search-bar { padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
         
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td, th { padding: 12px 6px; border-bottom: 1px solid #eee; text-align: left; }
-        .action-btn { cursor: pointer; font-size: 16px; margin-right: 8px; display: inline-block; }
+        .action-btn { cursor: pointer; font-size: 16px; margin-right: 12px; display: inline-block; }
         .del-btn { color: var(--danger); }
         
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
@@ -132,10 +138,7 @@
         <div id="edit-acc-div">
             <label><small>Paid By</small></label>
             <select id="edit-paidBy">
-                <option value="">N/A</option>
-                <option value="Bipin">Bipin</option>
-                <option value="Arjun">Arjun</option>
-                <option value="Kotak Account">Kotak Account</option>
+                <option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option>
             </select>
         </div>
         <div class="grid"><button onclick="closeEdit()">Cancel</button><button onclick="submitEdit()" style="background:var(--success)">Update</button></div>
@@ -170,22 +173,28 @@
         db.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
             const v = parseFloat(i.amt)||0, q = parseFloat(i.qty)||0;
             const detRaw = i.details || "";
-            const paidBy = (i.type === 'exp') ? (i.paidBy || "Bipin") : "";
+            const detLower = detRaw.toLowerCase();
+            const rawTag = (i.type || "").toString().trim().toLowerCase();
             
-            if(detRaw.toLowerCase().includes("pallavi")) workers["Pallavi Mavshi"] += v;
-            else if(detRaw.toLowerCase().includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
-            else if(detRaw.toLowerCase().includes("bhabhi")) workers["Bhabhi"] += v;
+            // Logic for By column: Only show for expenses
+            const isExp = (rawTag === 'exp' || detLower.startsWith('expense:'));
+            const paidBy = isExp ? (i.paidBy || "Bipin").trim() : "";
+            
+            if(detLower.includes("pallavi")) workers["Pallavi Mavshi"] += v;
+            else if(detLower.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
+            else if(detLower.includes("bhabhi")) workers["Bhabhi"] += v;
 
-            if(i.type === 'sale') ts += v;
-            if(i.type === 'fill') actB += q;
-            if(i.type === 'waste' && detRaw.toLowerCase().includes("contaminated")) actB -= q;
-            if(i.type === 'exp') {
+            if(rawTag === 'sale') ts += v;
+            if(rawTag === 'fill') actB += q;
+            if(rawTag === 'waste' && detLower.includes("contaminated")) actB -= q;
+            
+            if(isExp) {
                 te += v;
                 if(accounts.hasOwnProperty(paidBy)) accounts[paidBy] += v;
             }
 
             let rowClass = "";
-            if(i.type === 'waste') rowClass = "row-waste";
+            if(rawTag === 'waste') rowClass = "row-waste";
             else if(paidBy === 'Arjun') rowClass = "row-arjun";
             else if(paidBy === 'Kotak Account') rowClass = "row-kotak";
 
@@ -201,16 +210,16 @@
             </tr>`;
         });
 
-        safeSet('net-profit', '₹' + (ts - te));
+        safeSet('net-profit', '₹' + (ts - te).toFixed(2));
         safeSet('active-bags', actB);
         safeSet('row-count', db.length + " Records");
 
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
             let html = `<b>Staff Totals</b>`;
-            for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
+            for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w].toFixed(2)}</b></div>`; }
             html += `<hr><b>Expenses by Account</b>`;
-            for(let acc in accounts) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b>₹${accounts[acc]}</b></div>`; }
+            for(let acc in accounts) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b>₹${accounts[acc].toFixed(2)}</b></div>`; }
             ledSum.innerHTML = html;
         }
     }
@@ -218,13 +227,11 @@
     async function addData(type) {
         let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "" };
         if(type==='exp') p.paidBy = document.getElementById('acc-select').value;
-        
         if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
         if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
         if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
         if(type==='sale'){ p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; p.details="Sale: "+document.getElementById('s-cust').value; }
         if(type==='exp'){ p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
-        
         safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         document.querySelectorAll('.main-container input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
@@ -235,19 +242,17 @@
         let i = db.find(x => x.rowId == id);
         if(!i) return;
         document.getElementById('edit-id').value = i.rowId;
-        document.getElementById('edit-type').value = i.type;
+        document.getElementById('edit-type').value = i.type || 'exp';
         document.getElementById('edit-date').value = (i.date||"").split('T')[0];
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
-        
         const accDiv = document.getElementById('edit-acc-div');
-        if(i.type === 'exp') {
-            accDiv.style.display = 'block';
-            document.getElementById('edit-paidBy').value = i.paidBy || "Bipin";
-        } else {
-            accDiv.style.display = 'none';
-            document.getElementById('edit-paidBy').value = "";
+        if(document.getElementById('edit-type').value === 'exp') { 
+            accDiv.style.display = 'block'; 
+            document.getElementById('edit-paidBy').value = i.paidBy || "Bipin"; 
+        } else { 
+            accDiv.style.display = 'none'; 
         }
         document.getElementById('editModal').style.display = 'block';
     }
@@ -260,7 +265,7 @@
     }
 
     async function delEntry(id) {
-        if(confirm("Are you sure you want to delete this record?")) {
+        if(confirm("Permanently delete this record?")) {
             safeSet('status', "⌛ Deleting...");
             await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
             setTimeout(load, 1500);
@@ -272,7 +277,6 @@
         document.getElementById('div-exp').style.display = v==='exp'?'block':'none'; 
         document.getElementById('acc-div').style.display = v==='exp'?'block':'none'; 
     }
-
     function filterHistory() {
         let val = document.getElementById('h-search').value.toLowerCase();
         document.querySelectorAll('#h-body tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none'; });

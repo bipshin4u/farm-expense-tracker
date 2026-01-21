@@ -8,7 +8,6 @@
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         
-        /* Sticky Top Status */
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .main-container { padding: 10px 15px; }
         
@@ -21,17 +20,15 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Row Highlighting */
+        /* Account Colors */
         .row-arjun { background-color: #e3f2fd !important; }
         .row-kotak { background-color: #fff9c4 !important; }
         .row-waste { color: var(--danger); background-color: #ffebee !important; }
 
         .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        
-        /* Sticky History Header */
         .history-header { 
             padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; 
-            position: sticky; top: 70px; z-index: 150; 
+            position: sticky; top: 75px; z-index: 150; 
         }
         .search-bar { padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
         
@@ -76,23 +73,13 @@
     <div id="tab-fin" class="tab-content" style="display:none;">
         <div class="card">
             <h3 style="margin-top:0">💰 Transactions</h3>
-            <select id="fin-type" onchange="toggleFin(this.value)">
-                <option value="sale">Record Sale</option>
-                <option value="exp">Record Expense</option>
-            </select>
-            
+            <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
             <div id="acc-div" style="display:none;">
-                <select id="acc-select">
-                    <option value="Bipin">Account: Bipin</option>
-                    <option value="Arjun">Account: Arjun</option>
-                    <option value="Kotak Account">Account: Kotak</option>
-                </select>
+                <select id="acc-select"><option value="Bipin">Account: Bipin</option><option value="Arjun">Account: Arjun</option><option value="Kotak Account">Account: Kotak</option></select>
             </div>
-
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
-            
             <div id="div-exp" style="display:none;">
                 <select id="e-cat">
                     <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
@@ -171,38 +158,49 @@
         hBody.innerHTML = '';
         
         db.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
-            const v = parseFloat(i.amt)||0, q = parseFloat(i.qty)||0;
+            const v = parseFloat(i.amt) || 0;
+            const q = parseFloat(i.qty) || 0;
             const detRaw = i.details || "";
             const detLower = detRaw.toLowerCase();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
+
+            // FLEXIBLE HEADER PICKUP (Handles paidBy, Paid By, PaidBy)
+            let whoPaidRaw = (i.paidBy || i["Paid By"] || i.PaidBy || "").toString().trim();
             
-            // Logic for By column: Only show for expenses
             const isExp = (rawTag === 'exp' || detLower.startsWith('expense:'));
-            const paidBy = isExp ? (i.paidBy || "Bipin").trim() : "";
+            const displayBy = isExp ? whoPaidRaw : "";
             
+            // Staff Totals
             if(detLower.includes("pallavi")) workers["Pallavi Mavshi"] += v;
             else if(detLower.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
             else if(detLower.includes("bhabhi")) workers["Bhabhi"] += v;
 
+            // Sales & Production
             if(rawTag === 'sale') ts += v;
             if(rawTag === 'fill') actB += q;
             if(rawTag === 'waste' && detLower.includes("contaminated")) actB -= q;
             
-            if(isExp) {
+            // Account Totals calculation
+            if(isExp && whoPaidRaw) {
                 te += v;
-                if(accounts.hasOwnProperty(paidBy)) accounts[paidBy] += v;
+                let matchedKey = "";
+                if(whoPaidRaw.includes("Bipin")) matchedKey = "Bipin";
+                else if(whoPaidRaw.includes("Arjun")) matchedKey = "Arjun";
+                else if(whoPaidRaw.includes("Kotak")) matchedKey = "Kotak Account";
+                
+                if(matchedKey) accounts[matchedKey] += v;
             }
 
             let rowClass = "";
             if(rawTag === 'waste') rowClass = "row-waste";
-            else if(paidBy === 'Arjun') rowClass = "row-arjun";
-            else if(paidBy === 'Kotak Account') rowClass = "row-kotak";
+            else if(whoPaidRaw.includes('Arjun')) rowClass = "row-arjun";
+            else if(whoPaidRaw.includes('Kotak')) rowClass = "row-kotak";
 
             hBody.innerHTML += `<tr class="${rowClass}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
-                <td>${paidBy.split(' ')[0]}</td>
+                <td>${displayBy.split(' ')[0]}</td>
                 <td style="white-space:nowrap">
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
                     <span class="action-btn del-btn" onclick="delEntry(${i.rowId})">🗑️</span>
@@ -250,10 +248,8 @@
         const accDiv = document.getElementById('edit-acc-div');
         if(document.getElementById('edit-type').value === 'exp') { 
             accDiv.style.display = 'block'; 
-            document.getElementById('edit-paidBy').value = i.paidBy || "Bipin"; 
-        } else { 
-            accDiv.style.display = 'none'; 
-        }
+            document.getElementById('edit-paidBy').value = (i.paidBy || i["Paid By"] || i.PaidBy || "Bipin"); 
+        } else { accDiv.style.display = 'none'; }
         document.getElementById('editModal').style.display = 'block';
     }
 
@@ -265,7 +261,7 @@
     }
 
     async function delEntry(id) {
-        if(confirm("Permanently delete this record?")) {
+        if(confirm("Delete this record?")) {
             safeSet('status', "⌛ Deleting...");
             await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
             setTimeout(load, 1500);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyster Farm Master Pro</title>
+    <title>Oyster Farm Master Gold V3</title>
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --bipin: #e8f5e9; --arjun: #e3f2fd; --kotak: #fff9c4; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
@@ -11,31 +11,33 @@
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .status-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
         .sync-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
-
         .main-container { padding: 10px 15px; }
         .tab-bar { display: flex; background: #eee; margin-bottom: 15px; border-radius: 10px; padding: 4px; }
         .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 12px; color: #666; }
         .tab-btn.active { background: white; color: var(--dark); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Account Highlighting */
+        /* Highlighting */
         .row-arjun { background-color: var(--arjun) !important; }
         .row-kotak { background-color: var(--kotak) !important; }
         .row-bipin { background-color: var(--bipin) !important; }
         .row-waste { background-color: #ffebee !important; color: var(--danger) !important; }
+        .status-pending { background-color: #ffd7d7 !important; border-left: 5px solid #e74c3c !important; }
+        
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .badge-pending { background: #e74c3c; color: white; }
+        .badge-paid { background: #2ecc71; color: white; }
+        .pay-btn { background: #2ecc71; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; margin-top: 4px; }
 
-        .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .history-header { padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; position: sticky; top: 75px; z-index: 150; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td, th { padding: 12px 6px; border-bottom: 1px solid #eee; text-align: left; }
         .action-btn { cursor: pointer; font-size: 16px; margin-right: 8px; display: inline-block; }
         
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
-        .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
+        .modal-content { background:white; margin:10% auto; padding:20px; width:85%; border-radius:12px; }
     </style>
 </head>
 <body>
@@ -74,42 +76,42 @@
         <div class="card">
             <h3>💰 Transactions</h3>
             <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
-            <div id="acc-div" style="display:none;">
-                <select id="acc-select"><option value="Bipin">Account: Bipin</option><option value="Arjun">Account: Arjun</option><option value="Kotak Account">Account: Kotak</option></select>
-            </div>
+            
             <div id="div-sale">
-                <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
+                <input type="text" id="s-cust" placeholder="Customer Name">
+                <div class="grid"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"></div>
+                <div class="grid">
+                    <select id="s-status" onchange="toggleSaleAcc(this.value)"><option value="Pending">Pending</option><option value="Paid" selected>Paid</option></select>
+                    <select id="s-acc"><option value="Kotak Account">To: Kotak</option><option value="Bipin">To: Bipin</option><option value="Arjun">To: Arjun</option></select>
+                </div>
+                <button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
+
             <div id="div-exp" style="display:none;">
+                <select id="e-acc"><option value="Bipin">By: Bipin</option><option value="Arjun">By: Arjun</option><option value="Kotak Account">By: Kotak</option></select>
                 <select id="e-cat">
                     <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
-                    <optgroup label="Materials">
-                        <option value="Material: Straw">Straw</option>
-                        <option value="Material: Spawn">Spawn</option>
-                        <option value="Material: Bavistine">Bavistine</option>
-                        <option value="Material: Formalin">Formalin</option>
-                        <option value="Material: Punnets">Punnets</option>
-                        <option value="Material: PP Bags">PP Bags / Rubber Bands</option>
-                    </optgroup>
+                    <optgroup label="Materials"><option value="Material: Straw">Straw</option><option value="Material: Spawn">Spawn</option><option value="Material: Bavistine">Bavistine</option><option value="Material: Formalin">Formalin</option><option value="Material: Punnets">Punnets</option><option value="Material: PP Bags">PP Bags</option></optgroup>
                     <optgroup label="Other"><option value="Rent">Rent</option><option value="Electricity">Electricity</option><option value="Transport">Transport</option><option value="Misc">Misc</option></optgroup>
                 </select>
                 <input type="number" id="e-amt" placeholder="Amount (₹)"><input type="number" id="e-qty" placeholder="Qty"><button onclick="addData('exp')" style="background:var(--danger)">Save Expense</button>
             </div>
         </div>
         <div class="card">
-            <h3>📊 Ledger Summary</h3>
+            <h3>📊 Ledger (Cash Position)</h3>
             <div id="ledger-summary">Loading...</div>
+            <div id="pending-collection" style="margin-top:10px; font-weight:bold; color:var(--danger)"></div>
         </div>
     </div>
 
     <div class="history-section">
         <div class="history-header">
             <span style="font-weight:bold">📜 HISTORY</span>
-            <input type="text" id="h-search" placeholder="🔍 Search records..." onkeyup="filterHistory()" style="width:100%; padding:10px; margin-top:10px; border-radius:20px; border:1px solid #ddd;">
+            <input type="text" id="h-search" placeholder="🔍 Search..." onkeyup="filterHistory()" style="width:100%; padding:10px; margin-top:10px; border-radius:20px; border:1px solid #ddd;">
         </div>
         <div style="overflow-x:auto;">
             <table>
-                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>Acc</th><th>Actions</th></tr></thead>
                 <tbody id="h-body"></tbody>
             </table>
         </div>
@@ -118,21 +120,22 @@
 
 <div id="editModal">
     <div class="modal-content">
-        <h3>✏️ Edit Entry</h3>
+        <h3>✏️ Edit</h3>
         <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
-        <label><small>Date</small></label><input type="date" id="edit-date">
-        <input type="text" id="edit-details">
+        <input type="date" id="edit-date"><input type="text" id="edit-details">
         <div class="grid"><input type="number" id="edit-amt"><input type="number" step="0.1" id="edit-qty"></div>
-        <div id="edit-acc-div">
-            <label><small>Paid By</small></label>
-            <select id="edit-paidBy"><option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option></select>
+        <label><small>Account</small></label>
+        <select id="edit-paidBy"><option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option></select>
+        <div id="edit-status-div">
+            <label><small>Status</small></label>
+            <select id="edit-status"><option value="Paid">Paid</option><option value="Pending">Pending</option></select>
         </div>
         <div class="grid"><button onclick="closeEdit()">Cancel</button><button onclick="submitEdit()" style="background:var(--success)">Update</button></div>
     </div>
 </div>
 
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwztQeAFStX4OhunUeOGKzgtdh3bMAoqh9DifIwK6aaSz5PybmtcIfcuYRROipUC4Mt/exec"; // PASTE NEW URL HERE
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbym2_t7cNf3XN6_OcgFHCkx8LF4dgQm4myKN18Ly1MWktt1RWG_-eCMzV8DVyM9YFHg/exec"; 
     let db = [];
 
     function safeSet(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
@@ -150,8 +153,8 @@
 
     function render() {
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
-        let accounts = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
-        let actB = 0, ts = 0, te = 0;
+        let balances = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
+        let actB = 0, ts = 0, te = 0, pendingCollect = 0;
         const hBody = document.getElementById('h-body');
         if(!hBody) return;
         hBody.innerHTML = '';
@@ -161,8 +164,9 @@
             const q = parseFloat(i.qty) || 0;
             const detRaw = (i.details || "").toString();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
+            const pStatus = (i.status || "Paid");
 
-            // --- SMART ACCOUNT SCANNER ---
+            // ACCOUNT SCANNER
             let rowWho = "";
             for (let key in i) {
                 let cellVal = (i[key] || "").toString().toLowerCase();
@@ -171,70 +175,103 @@
                 if (cellVal.includes("bipin")) { rowWho = "Bipin"; break; }
             }
             
-            const isExp = (rawTag === 'exp' || detRaw.toLowerCase().startsWith('expense:'));
             let rowClass = "";
-            let displayBy = ""; 
+            let displayBy = rowWho || "Bipin"; 
 
-            if (isExp) {
+            if (rawTag === 'exp' || detRaw.toLowerCase().startsWith('expense:')) {
                 te += v;
-                displayBy = rowWho || "Bipin"; // Default to Bipin if blank
-                if (displayBy === "Arjun") { accounts["Arjun"] += v; rowClass = "row-arjun"; }
-                else if (displayBy === "Kotak") { accounts["Kotak Account"] += v; rowClass = "row-kotak"; }
-                else if (displayBy === "Bipin") { accounts["Bipin"] += v; rowClass = "row-bipin"; }
+                balances[displayBy] -= v;
+                if (displayBy === "Arjun") rowClass = "row-arjun";
+                else if (displayBy === "Kotak Account") rowClass = "row-kotak";
+                else rowClass = "row-bipin";
+            }
+
+            if (rawTag === 'sale') {
+                ts += v;
+                if(pStatus === "Pending") {
+                    rowClass = "status-pending";
+                    pendingCollect += v;
+                    displayBy = "-";
+                } else {
+                    balances[displayBy] += v;
+                    if (displayBy === "Arjun") rowClass = "row-arjun";
+                    else if (displayBy === "Kotak Account") rowClass = "row-kotak";
+                    else rowClass = "row-bipin";
+                }
             }
 
             if (rawTag === 'waste') rowClass = "row-waste";
-            if (rawTag === 'sale') ts += v;
             if (rawTag === 'fill') actB += q;
             if (rawTag === 'waste' && detRaw.toLowerCase().includes("contaminated")) actB -= q;
-
-            // Worker Totals Calculation
             if (detRaw.toLowerCase().includes("pallavi")) workers["Pallavi Mavshi"] += v;
             else if (detRaw.toLowerCase().includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
             else if (detRaw.toLowerCase().includes("bhabhi")) workers["Bhabhi"] += v;
 
+            let badge = (rawTag === 'sale') ? `<span class="badge ${pStatus === 'Pending' ? 'badge-pending' : 'badge-paid'}">${pStatus.toUpperCase()}</span>` : "";
+            let payBtn = (rawTag === 'sale' && pStatus === 'Pending') ? `<button class="pay-btn" onclick="markAsPaid(${i.rowId})">Collect</button>` : "";
+
             hBody.innerHTML += `<tr class="${rowClass}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
-                <td>${detRaw}</td>
+                <td>${detRaw} ${badge}</td>
                 <td>${v || q}</td>
-                <td style="font-weight:bold;">${displayBy}</td> 
-                <td style="white-space:nowrap">
+                <td>${displayBy}</td> 
+                <td>
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
                     <span class="action-btn" onclick="delEntry(${i.rowId})">🗑️</span>
+                    ${payBtn}
                 </td>
             </tr>`;
         });
 
         safeSet('net-profit', '₹' + (ts - te).toFixed(2));
         safeSet('active-bags', actB);
+        safeSet('pending-collection', "Pending Collection: ₹" + pendingCollect.toFixed(2));
         
-        // Update Ledger Card
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
-            let html = `<b>Staff Totals</b><hr>`;
+            let html = `<b>Staff Totals (Out)</b><hr>`;
             for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w].toFixed(2)}</b></div>`; }
-            html += `<br><b>Expenses by Account</b><hr>`;
-            for(let acc in accounts) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b>₹${accounts[acc].toFixed(2)}</b></div>`; }
+            html += `<br><b>Net Cash in Account</b><hr>`;
+            for(let acc in balances) { 
+                let color = balances[acc] >= 0 ? 'var(--success)' : 'var(--danger)';
+                html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b style="color:${color}">₹${balances[acc].toFixed(2)}</b></div>`; 
+            }
             ledSum.innerHTML = html;
         }
     }
 
     async function addData(type) {
-        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "" };
-        if(type==='exp') p.paidBy = document.getElementById('acc-select').value;
+        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "", status: "Paid" };
+        if(type==='exp'){ p.paidBy = document.getElementById('e-acc').value; p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
         if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
         if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
         if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
-        if(type==='sale'){ p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; p.details="Sale: "+document.getElementById('s-cust').value; }
-        if(type==='exp'){ p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
+        if(type==='sale'){ 
+            p.qty=document.getElementById('s-qty').value; 
+            p.amt=p.qty*document.getElementById('s-rate').value; 
+            p.details="Sale: "+document.getElementById('s-cust').value;
+            p.status=document.getElementById('s-status').value;
+            p.paidBy= (p.status === "Pending") ? "" : document.getElementById('s-acc').value;
+        }
+        
         safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         document.querySelectorAll('.main-container input').forEach(input => { input.value = ''; });
         setTimeout(load, 1500);
     }
 
+    async function markAsPaid(id) {
+        let entry = db.find(x => x.rowId == id);
+        let acc = prompt("Receive into which account? (Kotak/Bipin/Arjun)", "Kotak Account");
+        if(!acc) return;
+        let p = { action:"edit", rowId:id, date:entry.date, type:entry.type, details:entry.details, amt:entry.amt, qty:entry.qty, paidBy:acc, status:"Paid" };
+        safeSet('status', "⌛ Updating Account...");
+        await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
+        setTimeout(load, 1500);
+    }
+
     async function delEntry(id) {
-        if(confirm("Permanently delete this record?")) {
+        if(confirm("Delete?")) {
             safeSet('status', "⌛ Deleting...");
             await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
             setTimeout(load, 1500);
@@ -245,27 +282,26 @@
         let i = db.find(x => x.rowId == id);
         if(!i) return;
         document.getElementById('edit-id').value = i.rowId;
-        document.getElementById('edit-type').value = i.type || 'exp';
+        document.getElementById('edit-type').value = i.type;
         document.getElementById('edit-date').value = (i.date||"").split('T')[0];
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
-        document.getElementById('edit-acc-div').style.display = (document.getElementById('edit-type').value === 'exp') ? 'block' : 'none';
+        document.getElementById('edit-status-div').style.display = (i.type === 'sale') ? 'block' : 'none';
+        document.getElementById('edit-status').value = i.status || 'Paid';
+        document.getElementById('edit-paidBy').value = i.paidBy || 'Bipin';
         document.getElementById('editModal').style.display = 'block';
     }
 
     async function submitEdit() {
-        let p = { action:"edit", rowId: document.getElementById('edit-id').value, type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, qty: document.getElementById('edit-qty').value, paidBy: document.getElementById('edit-paidBy').value };
+        let p = { action:"edit", rowId: document.getElementById('edit-id').value, type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, qty: document.getElementById('edit-qty').value, paidBy: document.getElementById('edit-paidBy').value, status: document.getElementById('edit-status').value };
         safeSet('status', "⌛ Updating...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         closeEdit(); setTimeout(load, 1500);
     }
 
-    function toggleFin(v) { 
-        document.getElementById('div-sale').style.display = v==='sale'?'block':'none'; 
-        document.getElementById('div-exp').style.display = v==='exp'?'block':'none'; 
-        document.getElementById('acc-div').style.display = v==='exp'?'block':'none'; 
-    }
+    function toggleFin(v) { document.getElementById('div-sale').style.display = v==='sale'?'block':'none'; document.getElementById('div-exp').style.display = v==='exp'?'block':'none'; }
+    function toggleSaleAcc(v) { document.getElementById('s-acc').style.visibility = (v === 'Pending') ? 'hidden' : 'visible'; }
     function filterHistory() {
         let val = document.getElementById('h-search').value.toLowerCase();
         document.querySelectorAll('#h-body tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none'; });

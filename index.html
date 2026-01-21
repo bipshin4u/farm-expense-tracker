@@ -160,58 +160,68 @@
         db.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
             const v = parseFloat(i.amt) || 0;
             const q = parseFloat(i.qty) || 0;
-            const detRaw = i.details || "";
+            const detRaw = (i.details || "").toString();
             const detLower = detRaw.toLowerCase();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
-
-            // FLEXIBLE HEADER PICKUP (Handles paidBy, Paid By, PaidBy)
-            let whoPaidRaw = (i.paidBy || i["Paid By"] || i.PaidBy || "").toString().trim();
+    
+            // 1. IMPROVED DATA PICKUP
+            // We look for any variation of the header "paidBy"
+            let rawPaidBy = (i.paidBy || i["Paid By"] || i.PaidBy || "").toString().trim();
             
+            // 2. LOGIC FOR EXPENSES
             const isExp = (rawTag === 'exp' || detLower.startsWith('expense:'));
-            const displayBy = isExp ? whoPaidRaw : "";
             
-            // Staff Totals
+            // 3. STAFF TOTALS
             if(detLower.includes("pallavi")) workers["Pallavi Mavshi"] += v;
             else if(detLower.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
             else if(detLower.includes("bhabhi")) workers["Bhabhi"] += v;
-
-            // Sales & Production
+    
+            // 4. SALES & PRODUCTION
             if(rawTag === 'sale') ts += v;
             if(rawTag === 'fill') actB += q;
             if(rawTag === 'waste' && detLower.includes("contaminated")) actB -= q;
             
-            // Account Totals calculation
-            if(isExp && whoPaidRaw) {
-                te += v;
-                let matchedKey = "";
-                if(whoPaidRaw.includes("Bipin")) matchedKey = "Bipin";
-                else if(whoPaidRaw.includes("Arjun")) matchedKey = "Arjun";
-                else if(whoPaidRaw.includes("Kotak")) matchedKey = "Kotak Account";
-                
-                if(matchedKey) accounts[matchedKey] += v;
-            }
-
+            // 5. ACCOUNT TOTALS & ROW COLORS
             let rowClass = "";
+            let tableDisplayName = ""; // This will hold the text for the 'By' column
+    
+            if(isExp) {
+                te += v;
+                // Determine who paid for Ledger and for Display
+                if(rawPaidBy.includes("Arjun")) {
+                    accounts["Arjun"] += v;
+                    rowClass = "row-arjun";
+                    tableDisplayName = "Arjun";
+                } else if(rawPaidBy.includes("Kotak")) {
+                    accounts["Kotak Account"] += v;
+                    rowClass = "row-kotak";
+                    tableDisplayName = "Kotak";
+                } else {
+                    accounts["Bipin"] += v;
+                    tableDisplayName = "Bipin";
+                }
+            }
+    
             if(rawTag === 'waste') rowClass = "row-waste";
-            else if(whoPaidRaw.includes('Arjun')) rowClass = "row-arjun";
-            else if(whoPaidRaw.includes('Kotak')) rowClass = "row-kotak";
-
+    
+            // 6. DRAW THE ROW
             hBody.innerHTML += `<tr class="${rowClass}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
-                <td>${displayBy.split(' ')[0]}</td>
+                <td style="font-weight:bold;">${tableDisplayName}</td> 
                 <td style="white-space:nowrap">
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
                     <span class="action-btn del-btn" onclick="delEntry(${i.rowId})">🗑️</span>
                 </td>
             </tr>`;
         });
-
+    
+        // Update Totals
         safeSet('net-profit', '₹' + (ts - te).toFixed(2));
         safeSet('active-bags', actB);
         safeSet('row-count', db.length + " Records");
-
+    
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
             let html = `<b>Staff Totals</b>`;

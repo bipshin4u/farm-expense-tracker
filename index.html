@@ -8,6 +8,7 @@
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         
+        /* Sticky Top Status Header */
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .main-container { padding: 10px 15px; }
         
@@ -20,12 +21,14 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Account Colors */
+        /* Row Highlighting Styles */
         .row-arjun { background-color: #e3f2fd !important; }
         .row-kotak { background-color: #fff9c4 !important; }
         .row-waste { color: var(--danger); background-color: #ffebee !important; }
 
         .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        
+        /* Sticky History Search Bar */
         .history-header { 
             padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; 
             position: sticky; top: 75px; z-index: 150; 
@@ -75,7 +78,11 @@
             <h3 style="margin-top:0">💰 Transactions</h3>
             <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
             <div id="acc-div" style="display:none;">
-                <select id="acc-select"><option value="Bipin">Account: Bipin</option><option value="Arjun">Account: Arjun</option><option value="Kotak Account">Account: Kotak</option></select>
+                <select id="acc-select">
+                    <option value="Bipin">Account: Bipin</option>
+                    <option value="Arjun">Account: Arjun</option>
+                    <option value="Kotak Account">Account: Kotak</option>
+                </select>
             </div>
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
@@ -143,10 +150,21 @@
         try {
             const r = await fetch(GOOGLE_URL);
             db = await r.json();
+
+            // --- DEBUG POPUP ---
+            if (db.length > 0) {
+                const headersFound = Object.keys(db[0]);
+                alert("DEBUG: Columns found in Sheet: " + headersFound.join(", "));
+            }
+            // -------------------
+
             render();
             safeSet('status', "✓ Connected");
             document.getElementById('status').style.color = "var(--success)";
-        } catch(e) { safeSet('status', "⚠ Offline"); }
+        } catch(e) { 
+            console.error(e);
+            safeSet('status', "⚠ Offline"); 
+        }
     }
 
     function render() {
@@ -163,36 +181,31 @@
             const detRaw = (i.details || "").toString();
             const detLower = detRaw.toLowerCase();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
-    
-            // 1. IMPROVED DATA PICKUP
-            // We look for any variation of the header "paidBy"
-            let rawPaidBy = (i.paidBy || i["Paid By"] || i.PaidBy || "").toString().trim();
+
+            // SEARCH FOR PAIDBY DATA (Checks every key for "paid" or "by")
+            let rawPaidByValue = "";
+            for (let key in i) {
+                let cleanKey = key.toLowerCase().replace(/\s/g, '');
+                if (cleanKey === "paidby" || cleanKey === "by") {
+                    rawPaidByValue = i[key];
+                    break;
+                }
+            }
             
-            // 2. LOGIC FOR EXPENSES
+            let finalPaidBy = (rawPaidByValue || "").toString().trim();
             const isExp = (rawTag === 'exp' || detLower.startsWith('expense:'));
             
-            // 3. STAFF TOTALS
-            if(detLower.includes("pallavi")) workers["Pallavi Mavshi"] += v;
-            else if(detLower.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
-            else if(detLower.includes("bhabhi")) workers["Bhabhi"] += v;
-    
-            // 4. SALES & PRODUCTION
-            if(rawTag === 'sale') ts += v;
-            if(rawTag === 'fill') actB += q;
-            if(rawTag === 'waste' && detLower.includes("contaminated")) actB -= q;
-            
-            // 5. ACCOUNT TOTALS & ROW COLORS
             let rowClass = "";
-            let tableDisplayName = ""; // This will hold the text for the 'By' column
-    
-            if(isExp) {
+            let tableDisplayName = ""; 
+
+            if (isExp) {
                 te += v;
-                // Determine who paid for Ledger and for Display
-                if(rawPaidBy.includes("Arjun")) {
+                // Determine Account & Display Name
+                if (finalPaidBy.toLowerCase().includes("arjun")) {
                     accounts["Arjun"] += v;
                     rowClass = "row-arjun";
                     tableDisplayName = "Arjun";
-                } else if(rawPaidBy.includes("Kotak")) {
+                } else if (finalPaidBy.toLowerCase().includes("kotak")) {
                     accounts["Kotak Account"] += v;
                     rowClass = "row-kotak";
                     tableDisplayName = "Kotak";
@@ -201,27 +214,33 @@
                     tableDisplayName = "Bipin";
                 }
             }
-    
-            if(rawTag === 'waste') rowClass = "row-waste";
-    
-            // 6. DRAW THE ROW
+
+            if (rawTag === 'waste') rowClass = "row-waste";
+            if (rawTag === 'sale') ts += v;
+            if (rawTag === 'fill') actB += q;
+            if (rawTag === 'waste' && detLower.includes("contaminated")) actB -= q;
+
+            // Worker calculation
+            if (detLower.includes("pallavi")) workers["Pallavi Mavshi"] += v;
+            else if (detLower.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
+            else if (detLower.includes("bhabhi")) workers["Bhabhi"] += v;
+
             hBody.innerHTML += `<tr class="${rowClass}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
-                <td style="font-weight:bold;">${tableDisplayName}</td> 
+                <td style="font-weight:bold; color:#2c3e50;">${tableDisplayName}</td> 
                 <td style="white-space:nowrap">
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
                     <span class="action-btn del-btn" onclick="delEntry(${i.rowId})">🗑️</span>
                 </td>
             </tr>`;
         });
-    
-        // Update Totals
+
         safeSet('net-profit', '₹' + (ts - te).toFixed(2));
         safeSet('active-bags', actB);
         safeSet('row-count', db.length + " Records");
-    
+
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
             let html = `<b>Staff Totals</b>`;
@@ -255,11 +274,16 @@
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
+        
         const accDiv = document.getElementById('edit-acc-div');
         if(document.getElementById('edit-type').value === 'exp') { 
             accDiv.style.display = 'block'; 
-            document.getElementById('edit-paidBy').value = (i.paidBy || i["Paid By"] || i.PaidBy || "Bipin"); 
-        } else { accDiv.style.display = 'none'; }
+            // Pull the correct paidBy even if key is slightly different
+            let currentPaidBy = (i.paidBy || i["Paid By"] || i.PaidBy || "Bipin");
+            document.getElementById('edit-paidBy').value = currentPaidBy; 
+        } else { 
+            accDiv.style.display = 'none'; 
+        }
         document.getElementById('editModal').style.display = 'block';
     }
 
@@ -271,7 +295,7 @@
     }
 
     async function delEntry(id) {
-        if(confirm("Delete this record?")) {
+        if(confirm("Permanently delete this record?")) {
             safeSet('status', "⌛ Deleting...");
             await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
             setTimeout(load, 1500);
@@ -283,15 +307,18 @@
         document.getElementById('div-exp').style.display = v==='exp'?'block':'none'; 
         document.getElementById('acc-div').style.display = v==='exp'?'block':'none'; 
     }
+    
     function filterHistory() {
         let val = document.getElementById('h-search').value.toLowerCase();
         document.querySelectorAll('#h-body tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none'; });
     }
+    
     function openTab(e, id) {
         document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
         document.getElementById(id).style.display='block'; e.currentTarget.classList.add('active');
     }
+    
     function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
     window.onload = load;
 </script>

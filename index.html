@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oyster Farm Master Pro</title>
     <style>
-        :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --forecast: #6c5ce7; }
+        :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--dark); }
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; flex-shrink: 0; }
         .top-content { flex: 1; overflow-y: auto; padding: 0 15px; }
@@ -32,7 +32,7 @@
 <body>
 
 <div class="header-status">
-    <div id="status" onclick="showDebug()" style="font-size:12px; cursor:pointer; font-weight:bold; margin-bottom:5px; color: orange;">⌛ Connecting...</div>
+    <div id="status" style="font-size:12px; font-weight:bold; margin-bottom:5px; color: orange;">⌛ Connecting...</div>
     <div class="grid">
         <div><small>Active Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
         <div><small>Net Profit</small><div id="net-profit" style="font-weight:bold; color:var(--success)">₹0</div></div>
@@ -72,13 +72,16 @@
             <div id="div-exp" style="display:none;">
                 <select id="e-cat">
                     <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
-                    <optgroup label="Materials"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="PP Bags">PP Bags</option><option value="Punnets">Punnets</option><option value="Bavistine">Bavistine</option><option value="Formalin">Formalin</option></optgroup>
-                    <optgroup label="Overheads"><option value="Rent">Rent</option><option value="Electricity">Electricity</option><option value="Transport">Transport</option><option value="Misc">Miscellaneous</option></optgroup>
+                    <optgroup label="Materials"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="PP Bags">PP Bags</option><option value="Punnets">Punnets</option></optgroup>
+                    <optgroup label="Overheads"><option value="Rent">Rent</option><option value="Electricity">Electricity</option><option value="Transport">Transport</option><option value="Misc">Misc</option></optgroup>
                 </select>
                 <input type="number" id="e-amt" placeholder="Amount (₹)"><input type="number" id="e-qty" placeholder="Qty"><button onclick="addData('exp')" style="background:var(--danger)">Save Expense</button>
             </div>
         </div>
-        <div class="card"><h3>📊 Ledger Summary</h3><div id="ledger-summary"></div></div>
+        <div class="card">
+            <h3>📊 Ledger Summary</h3>
+            <div id="ledger-summary">Loading summary...</div>
+        </div>
     </div>
 </div>
 
@@ -110,26 +113,27 @@
 </div>
 
 <script>
-    // UPDATE YOUR URL HERE
+    // ⚠️ UPDATE YOUR URL HERE
     const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec";
     let db = [];
-    let lastErr = "None";
 
-    function showDebug() { alert("Debug Info:\nURL: " + GOOGLE_URL + "\nLast Error: " + lastErr); }
-
-    // Helper to safely set text
-    function setTxt(id, txt) { const el = document.getElementById(id); if(el) el.innerText = txt; }
+    // Helper to safely set text without crashing
+    function safeSet(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val;
+    }
 
     async function load() {
-        const statusEl = document.getElementById('status');
+        safeSet('status', "⌛ Connecting...");
         try {
             const r = await fetch(GOOGLE_URL);
             db = await r.json();
             render();
+            const statusEl = document.getElementById('status');
             if(statusEl) { statusEl.innerText = "✓ Connected"; statusEl.style.color = "var(--success)"; }
         } catch(e) { 
-            lastErr = e.message; 
-            if(statusEl) { statusEl.innerText = "⚠ Offline"; statusEl.style.color = "var(--danger)"; }
+            safeSet('status', "⚠ Offline - Check URL");
+            console.error(e);
         }
     }
 
@@ -137,6 +141,7 @@
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
         let waste = { "Contaminated Bag": 0, "Spoilt Mushroom": 0 };
         let actB = 0, ts = 0, te = 0;
+        
         const hBody = document.getElementById('h-body');
         if(!hBody) return;
         hBody.innerHTML = '';
@@ -159,7 +164,7 @@
                 if(det.includes("bhabhi")) workers["Bhabhi"] += v;
             }
 
-            let row = `<tr class="${i.type==='waste'?'waste-row':''}">
+            hBody.innerHTML += `<tr class="${i.type==='waste'?'waste-row':''}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
@@ -168,26 +173,27 @@
                     <span class="action-btn" onclick="del(${i.rowId})">🗑️</span>
                 </td>
             </tr>`;
-            hBody.innerHTML += row;
         });
 
-        setTxt('row-count', db.length + " Records");
-        setTxt('sales-total', '₹' + ts);
-        setTxt('exp-total', '₹' + te);
-        setTxt('net-profit', '₹' + (ts - te));
-        setTxt('active-bags', actB);
+        // Update stats
+        safeSet('row-count', db.length + " Records");
+        safeSet('sales-total', '₹' + ts);
+        safeSet('exp-total', '₹' + te);
+        safeSet('net-profit', '₹' + (ts - te));
+        safeSet('active-bags', actB);
 
+        // Update Ledger Card
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
-            let ledgerHtml = `<h4>Losses</h4>`;
-            for(let w in waste) { ledgerHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0;"><span>${w}</span><span style="color:red">${waste[w]}</span></div>`; }
-            ledgerHtml += `<h4 style="margin-top:10px">Staff Payments</h4>`;
-            for(let w in workers) { ledgerHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0;"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
-            ledSum.innerHTML = ledgerHtml;
+            let html = `<div style="margin-bottom:10px"><b>Losses</b></div>`;
+            for(let w in waste) { html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>${w}</span><span style="color:red">${waste[w]}</span></div>`; }
+            html += `<div style="margin:10px 0; border-top:1px solid #eee; padding-top:10px"><b>Staff Totals</b></div>`;
+            for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
+            ledSum.innerHTML = html;
         }
     }
 
-    // Modal & Action functions
+    // Modal & Crud Functions
     function startEdit(id) {
         let i = db.find(x => x.rowId == id);
         if(!i) return;
@@ -202,13 +208,13 @@
     function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
     async function submitEdit() {
         let p = { action:"edit", rowId: document.getElementById('edit-id').value, type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, qty: document.getElementById('edit-qty').value, paidBy:"Bipin" };
-        setTxt('status', "⌛ Updating...");
+        safeSet('status', "⌛ Updating...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         closeEdit(); setTimeout(load, 1500);
     }
     async function del(id) {
-        if(confirm("Permanently delete this entry?")) {
-            setTxt('status', "⌛ Deleting...");
+        if(confirm("Delete this?")) {
+            safeSet('status', "⌛ Deleting...");
             await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
             setTimeout(load, 1500);
         }
@@ -220,9 +226,9 @@
         if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
         if(type==='sale'){ p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; p.details="Sale: "+document.getElementById('s-cust').value; }
         if(type==='exp'){ p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
-        setTxt('status', "⌛ Saving...");
+        safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
-        document.querySelectorAll('input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
+        document.querySelectorAll('.top-content input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
         setTimeout(load, 1500);
     }
     function filterHistory() {

@@ -81,7 +81,7 @@
                 <input type="text" id="s-cust" placeholder="Customer Name">
                 <div class="grid"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"></div>
                 <div class="grid">
-                    <select id="s-status" onchange="toggleSaleAcc(this.value)"><option value="Pending">Pending</option><option value="Paid" selected>Paid</option></select>
+                    <select id="s-status" onchange="toggleSaleAcc(this.value)"><option value="Pending" selected>Pending</option><option value="Paid">Paid</option></select>
                     <select id="s-acc"><option value="Kotak Account">To: Kotak</option><option value="Bipin">To: Bipin</option><option value="Arjun">To: Arjun</option></select>
                 </div>
                 <button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
@@ -241,8 +241,8 @@
     }
 
     async function addData(type) {
-        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "", status: "Paid" };
-        if(type==='exp'){ p.paidBy = document.getElementById('e-acc').value; p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
+        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "", status: "Pending" };
+        if(type==='exp'){ p.paidBy = document.getElementById('e-acc').value; p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; p.status = "Paid"; } // Expenses are always "Paid" by default
         if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
         if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
         if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
@@ -251,7 +251,8 @@
             p.amt=p.qty*document.getElementById('s-rate').value; 
             p.details="Sale: "+document.getElementById('s-cust').value;
             p.status=document.getElementById('s-status').value;
-            p.paidBy= (p.status === "Pending") ? "" : document.getElementById('s-acc').value;
+            // Only assign an account if it's marked as Paid
+            p.paidBy = (p.status === "Pending") ? "" : document.getElementById('s-acc').value;
         }
         
         safeSet('status', "⌛ Saving...");

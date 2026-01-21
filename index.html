@@ -6,12 +6,15 @@
     <title>Oyster Farm Master Pro</title>
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--dark); }
-        .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; flex-shrink: 0; }
-        .top-content { flex: 1; overflow-y: auto; padding: 0 15px; }
-        .tab-bar { display: flex; background: #eee; margin: 10px 0; border-radius: 10px; padding: 4px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 11px; color: #666; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; } /* Removed fixed height */
+        
+        .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 100; }
+        .main-container { padding: 10px 15px; }
+        
+        .tab-bar { display: flex; background: #eee; margin-bottom: 15px; border-radius: 10px; padding: 4px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 12px; color: #666; }
         .tab-btn.active { background: white; color: var(--dark); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
@@ -22,30 +25,30 @@
         .row-kotak { background-color: #fff9c4 !important; }
         .row-waste { color: var(--danger); background-color: #ffebee !important; }
 
-        .history-section { height: 40vh; background: white; border-top: 2px solid #ddd; display: flex; flex-direction: column; flex-shrink: 0; }
-        .history-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; }
-        .search-bar { padding: 8px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 12px; margin-top: 5px; }
-        .history-scroll { flex: 1; overflow-y: auto; padding: 0 15px; }
+        /* History - Now flows naturally */
+        .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .history-header { padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; }
+        .search-bar { padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
+        
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
-        th { position: sticky; top: 0; background: #fff; z-index: 1; }
-        .action-btn { cursor: pointer; padding: 2px; font-size: 14px; }
+        td, th { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: left; }
+        .action-btn { cursor: pointer; font-size: 16px; }
         
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
-        .modal-content { background:white; margin:10% auto; padding:20px; width:85%; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
     </style>
 </head>
 <body>
 
 <div class="header-status">
-    <div id="status" style="font-size:11px; font-weight:bold; color: orange;">⌛ Connecting...</div>
-    <div class="grid">
-        <div><small>Active Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
+    <div id="status" style="font-size:11px; font-weight:bold; color: orange; margin-bottom: 5px;">⌛ Connecting...</div>
+    <div class="grid" style="max-width: 400px; margin: 0 auto;">
+        <div><small>Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
         <div><small>Profit</small><div id="net-profit" style="font-weight:bold; color:var(--success)">₹0</div></div>
     </div>
 </div>
 
-<div class="top-content">
+<div class="main-container">
     <div class="tab-bar">
         <button class="tab-btn active" onclick="openTab(event, 'tab-prod')">PRODUCTION</button>
         <button class="tab-btn" onclick="openTab(event, 'tab-fin')">FINANCE</button>
@@ -53,25 +56,25 @@
 
     <div id="tab-prod" class="tab-content">
         <div class="card">
-            <h3>🛠 Bags & Harvest</h3>
+            <h3 style="margin-top:0">🛠 Production</h3>
             <div class="grid"><input type="number" id="f-qty" placeholder="Bags filled"><button onclick="addData('fill')" style="background:#1abc9c">Save</button></div>
-            <hr>
             <div class="grid"><input type="number" step="0.1" id="y-weight" placeholder="Harvest kg"><button onclick="addData('yield')" style="background:var(--yield)">Save</button></div>
         </div>
         <div class="card" style="border-left: 5px solid var(--danger);">
-            <h3>⚠️ Log Wastage</h3>
+            <h3 style="margin-top:0">⚠️ Wastage</h3>
             <select id="w-type"><option value="Contaminated Bag">Contaminated Bag</option><option value="Spoilt Mushroom">Spoilt Mushroom</option></select>
-            <input type="number" step="0.1" id="w-qty" placeholder="Qty"><button onclick="addData('waste')" style="background:var(--danger)">Record Loss</button>
+            <input type="number" step="0.1" id="w-qty" placeholder="Quantity"><button onclick="addData('waste')" style="background:var(--danger)">Record Loss</button>
         </div>
     </div>
 
     <div id="tab-fin" class="tab-content" style="display:none;">
         <div class="card">
+            <h3 style="margin-top:0">💰 Transactions</h3>
             <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
             <select id="acc-select">
-                <option value="Bipin">Paid By: Bipin</option>
-                <option value="Arjun">Paid By: Arjun</option>
-                <option value="Kotak Account">Paid By: Kotak</option>
+                <option value="Bipin">Account: Bipin</option>
+                <option value="Arjun">Account: Arjun</option>
+                <option value="Kotak Account">Account: Kotak</option>
             </select>
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
@@ -90,33 +93,34 @@
             <div id="ledger-summary">Loading...</div>
         </div>
     </div>
-</div>
 
-<div class="history-section">
-    <div class="history-header">
-        <div style="display:flex; justify-content:space-between; align-items:center;"><span>📜 HISTORY</span><small id="row-count">0 Records</small></div>
-        <input type="text" id="h-search" class="search-bar" placeholder="🔍 Search History..." onkeyup="filterHistory()">
-    </div>
-    <div class="history-scroll">
-        <table id="h-table">
-            <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th>Act</th></tr></thead>
-            <tbody id="h-body"></tbody>
-        </table>
+    <div class="history-section">
+        <div class="history-header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:bold">📜 HISTORY</span>
+                <small id="row-count">0 Records</small>
+            </div>
+            <input type="text" id="h-search" class="search-bar" placeholder="🔍 Search records..." onkeyup="filterHistory()">
+        </div>
+        <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th></th></tr></thead>
+                <tbody id="h-body"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <div id="editModal">
     <div class="modal-content">
         <h3>✏️ Edit Entry</h3>
-        <input type="hidden" id="edit-id">
-        <input type="hidden" id="edit-type">
+        <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
         <label><small>Date</small></label><input type="date" id="edit-date">
-        <label><small>Description</small></label><input type="text" id="edit-details">
+        <input type="text" id="edit-details" placeholder="Details">
         <div class="grid">
-            <div><label><small>Amount (₹)</small></label><input type="number" id="edit-amt"></div>
-            <div><label><small>Qty</small></label><input type="number" step="0.1" id="edit-qty"></div>
+            <input type="number" id="edit-amt" placeholder="Amt">
+            <input type="number" step="0.1" id="edit-qty" placeholder="Qty">
         </div>
-        <label><small>Paid By</small></label>
         <select id="edit-paidBy">
             <option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option>
         </select>
@@ -156,12 +160,10 @@
             const det = detRaw.toLowerCase();
             const paidBy = i.paidBy || "Bipin";
             
-            // Worker detection (matches any mention of name)
             if(det.includes("pallavi")) workers["Pallavi Mavshi"] += v;
             else if(det.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
             else if(det.includes("bhabhi")) workers["Bhabhi"] += v;
 
-            // Totals
             if(i.type === 'sale') ts += v;
             if(i.type === 'fill') actB += q;
             if(i.type === 'waste' && det.includes("contaminated")) actB -= q;
@@ -170,7 +172,6 @@
                 if(accounts.hasOwnProperty(paidBy)) accounts[paidBy] += v;
             }
 
-            // Row Coloring
             let rowClass = "";
             if(i.type === 'waste') rowClass = "row-waste";
             else if(paidBy === 'Arjun') rowClass = "row-arjun";
@@ -185,8 +186,6 @@
             </tr>`;
         });
 
-        safeSet('sales-total', '₹' + ts);
-        safeSet('exp-total', '₹' + te);
         safeSet('net-profit', '₹' + (ts - te));
         safeSet('active-bags', actB);
         safeSet('row-count', db.length + " Records");
@@ -219,7 +218,7 @@
         let i = db.find(x => x.rowId == id);
         if(!i) return;
         document.getElementById('edit-id').value = i.rowId;
-        document.getElementById('edit-type').value = i.type || 'exp'; // Preserve original type
+        document.getElementById('edit-type').value = i.type || 'exp';
         document.getElementById('edit-date').value = (i.date||"").split('T')[0];
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
@@ -231,16 +230,7 @@
     function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
 
     async function submitEdit() {
-        let p = { 
-            action:"edit", 
-            rowId: document.getElementById('edit-id').value, 
-            type: document.getElementById('edit-type').value, 
-            date: document.getElementById('edit-date').value, 
-            details: document.getElementById('edit-details').value, 
-            amt: document.getElementById('edit-amt').value, 
-            qty: document.getElementById('edit-qty').value, 
-            paidBy: document.getElementById('edit-paidBy').value 
-        };
+        let p = { action:"edit", rowId: document.getElementById('edit-id').value, type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, qty: document.getElementById('edit-qty').value, paidBy: document.getElementById('edit-paidBy').value };
         safeSet('status', "⌛ Updating...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         closeEdit(); setTimeout(load, 1500);

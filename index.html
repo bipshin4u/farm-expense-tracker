@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyster Farm Master Gold V5</title>
+    <title>Oyster Farm Master Gold V6</title>
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --bipin: #e8f5e9; --arjun: #e3f2fd; --kotak: #fff9c4; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         
-        /* UI Components */
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .status-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
         .sync-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
@@ -21,7 +20,6 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Row Highlighting & Status Badges */
         .row-arjun { background-color: var(--arjun) !important; }
         .row-kotak { background-color: var(--kotak) !important; }
         .row-bipin { background-color: var(--bipin) !important; }
@@ -50,7 +48,7 @@
     </div>
     <div class="grid" style="max-width: 400px; margin: 0 auto;">
         <div><small>Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
-        <div><small>Profit</small><div id="net-profit" style="font-weight:bold; color:var(--success)">₹0</div></div>
+        <div><small>Net Profit</small><div id="net-profit" style="font-weight:bold; color:var(--success)">₹0</div></div>
     </div>
 </div>
 
@@ -81,15 +79,15 @@
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name">
                 <div class="grid"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"></div>
-                <div class="grid">
-                    <select id="s-status" onchange="toggleSaleAcc(this.value)"><option value="Pending" selected>Pending</option><option value="Paid">Paid</option></select>
-                    <select id="s-acc" style="visibility: hidden;"><option value="Kotak Account">To: Kotak</option><option value="Bipin">To: Bipin</option><option value="Arjun">To: Arjun</option></select>
-                </div>
+                <select id="s-status">
+                    <option value="Pending" selected>Pending</option>
+                    <option value="Paid">Paid</option>
+                </select>
                 <button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
 
             <div id="div-exp" style="display:none;">
-                <select id="e-acc"><option value="Bipin">By: Bipin</option><option value="Arjun">By: Arjun</option><option value="Kotak Account">By: Kotak</option></select>
+                <select id="e-acc"><option value="Bipin">Paid By: Bipin</option><option value="Arjun">Paid By: Arjun</option><option value="Kotak Account">Paid By: Kotak</option></select>
                 <select id="e-cat">
                     <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
                     <optgroup label="Materials"><option value="Material: Straw">Straw</option><option value="Material: Spawn">Spawn</option><option value="Material: Bavistine">Bavistine</option><option value="Material: Formalin">Formalin</option><option value="Material: Punnets">Punnets</option><option value="Material: PP Bags">PP Bags</option></optgroup>
@@ -99,7 +97,7 @@
             </div>
         </div>
         <div class="card">
-            <h3>📊 Ledger (Cash Position)</h3>
+            <h3>📊 Ledger Summary</h3>
             <div id="ledger-summary">Loading...</div>
             <div id="pending-collection" style="margin-top:10px; font-weight:bold; color:var(--danger)"></div>
         </div>
@@ -112,7 +110,7 @@
         </div>
         <div style="overflow-x:auto;">
             <table>
-                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>Acc</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th>Actions</th></tr></thead>
                 <tbody id="h-body"></tbody>
             </table>
         </div>
@@ -126,7 +124,7 @@
         <input type="date" id="edit-date"><input type="text" id="edit-details">
         <div class="grid"><input type="number" id="edit-amt"><input type="number" step="0.1" id="edit-qty"></div>
         <div id="edit-acc-section" style="display:none;">
-            <label><small>Account</small></label>
+            <label><small>Paid By (Expenses Only)</small></label>
             <select id="edit-paidBy"><option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option><option value="">None</option></select>
         </div>
         <div id="edit-status-section" style="display:none;">
@@ -138,7 +136,7 @@
 </div>
 
 <script>
-    const GOOGLE_URL = "YOUR_NEW_DEPLOYMENT_URL_HERE"; 
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbxn7G6UJhRBch9PDnsdWBRd0jjF-MJYzOvI-yN8soNY5C0OoqRAIdak4CoJGsKjk3Km/exec"; 
     let db = [];
 
     function safeSet(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
@@ -156,7 +154,7 @@
 
     function render() {
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
-        let balances = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
+        let expenseAccounts = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
         let actB = 0, ts = 0, te = 0, pendingCollect = 0;
         const hBody = document.getElementById('h-body');
         if(!hBody) return; hBody.innerHTML = '';
@@ -167,12 +165,11 @@
             const detRaw = (i.details || "").toString();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
             
-            // Logic for defaulting empty statuses to Pending for sales
             let pStatus = i.status;
             if (rawTag === 'sale' && (!pStatus || pStatus === "")) pStatus = "Pending";
             else if (!pStatus) pStatus = "Paid";
 
-            // Account Scanner (Brute Force)
+            // Scanner for Highlight Logic
             let rowWho = "";
             for (let key in i) {
                 let cellVal = (i[key] || "").toString().toLowerCase();
@@ -184,31 +181,24 @@
             let rowClass = "";
             let displayBy = rowWho || ""; 
 
-            // Expenses
+            // Expense Logic (Ledger focus)
             if (rawTag === 'exp' || detRaw.toLowerCase().startsWith('expense:')) {
                 te += v;
-                if(displayBy) balances[displayBy] -= v;
+                if(displayBy) expenseAccounts[displayBy] += v;
                 if (displayBy === "Arjun") rowClass = "row-arjun";
                 else if (displayBy === "Kotak Account") rowClass = "row-kotak";
                 else if (displayBy === "Bipin") rowClass = "row-bipin";
             }
 
-            // Sales
+            // Sale Logic (Pending focus)
             if (rawTag === 'sale') {
                 ts += v;
                 if(pStatus === "Pending") {
                     rowClass = "status-pending";
                     pendingCollect += v;
-                    displayBy = "-";
-                } else {
-                    if(displayBy) balances[displayBy] += v;
-                    if (displayBy === "Arjun") rowClass = "row-arjun";
-                    else if (displayBy === "Kotak Account") rowClass = "row-kotak";
-                    else if (displayBy === "Bipin") rowClass = "row-bipin";
                 }
             }
 
-            // Production & Workers
             if (rawTag === 'waste') rowClass = "row-waste";
             if (rawTag === 'fill') actB += q;
             if (rawTag === 'waste' && detRaw.toLowerCase().includes("contaminated")) actB -= q;
@@ -238,12 +228,11 @@
         
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
-            let html = `<b>Staff Totals</b><hr>`;
+            let html = `<b>Staff Expense Totals</b><hr>`;
             for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w].toFixed(2)}</b></div>`; }
-            html += `<br><b>Net Cash in Account</b><hr>`;
-            for(let acc in balances) { 
-                let color = balances[acc] >= 0 ? 'var(--success)' : 'var(--danger)';
-                html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b style="color:${color}">₹${balances[acc].toFixed(2)}</b></div>`; 
+            html += `<br><b>Total Spent by Account</b><hr>`;
+            for(let acc in expenseAccounts) { 
+                html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b>₹${expenseAccounts[acc].toFixed(2)}</b></div>`; 
             }
             ledSum.innerHTML = html;
         }
@@ -258,7 +247,6 @@
         else if(type==='sale'){ 
             p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; 
             p.details="Sale: "+document.getElementById('s-cust').value; p.status=document.getElementById('s-status').value;
-            p.paidBy= (p.status === "Pending") ? "" : document.getElementById('s-acc').value;
         }
         safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
@@ -267,11 +255,10 @@
     }
 
     async function markAsPaid(id) {
-        let acc = prompt("Receive into which account? (Kotak Account/Bipin/Arjun)", "Kotak Account");
-        if(!acc) return;
+        if(!confirm("Mark this sale as Paid?")) return;
         let entry = db.find(x => x.rowId == id);
-        let p = { action:"edit", rowId:id, date:entry.date, type:entry.type, details:entry.details, amt:entry.amt, qty:entry.qty, paidBy:acc, status:"Paid" };
-        safeSet('status', "⌛ Updating Account...");
+        let p = { action:"edit", rowId:id, date:entry.date, type:entry.type, details:entry.details, amt:entry.amt, qty:entry.qty, paidBy:"", status:"Paid" };
+        safeSet('status', "⌛ Updating Status...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         setTimeout(load, 1500);
     }
@@ -294,8 +281,7 @@
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
         
-        let isFin = (i.type === 'exp' || i.type === 'sale');
-        document.getElementById('edit-acc-section').style.display = isFin ? 'block' : 'none';
+        document.getElementById('edit-acc-section').style.display = (i.type === 'exp') ? 'block' : 'none';
         document.getElementById('edit-status-section').style.display = (i.type === 'sale') ? 'block' : 'none';
         document.getElementById('edit-status').value = i.status || 'Paid';
         document.getElementById('edit-paidBy').value = i.paidBy || '';
@@ -310,7 +296,6 @@
     }
 
     function toggleFin(v) { document.getElementById('div-sale').style.display = v==='sale'?'block':'none'; document.getElementById('div-exp').style.display = v==='exp'?'block':'none'; }
-    function toggleSaleAcc(v) { document.getElementById('s-acc').style.visibility = (v === 'Pending') ? 'hidden' : 'visible'; }
     function filterHistory() {
         let val = document.getElementById('h-search').value.toLowerCase();
         document.querySelectorAll('#h-body tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none'; });

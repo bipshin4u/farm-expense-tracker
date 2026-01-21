@@ -8,10 +8,7 @@
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --forecast: #6c5ce7; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: var(--dark); }
         
-        /* Fixed Header */
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; flex-shrink: 0; }
-        
-        /* Scrollable Top Section for Tabs */
         .top-content { flex: 1; overflow-y: auto; padding: 0 15px; }
         
         .tab-bar { display: flex; background: #eee; margin: 10px 0; border-radius: 10px; padding: 4px; }
@@ -23,18 +20,21 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Fixed Bottom History Section */
+        /* History Section */
         .history-section { height: 40vh; background: white; border-top: 2px solid #ddd; display: flex; flex-direction: column; flex-shrink: 0; }
         .history-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; }
         .search-bar { padding: 8px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 12px; margin-top: 5px; }
         .history-scroll { flex: 1; overflow-y: auto; padding: 0 15px; }
         
-        .ledger-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 13px; }
-        .loss-text { color: var(--danger); font-weight: bold; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
         td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
         th { position: sticky; top: 0; background: #fff; z-index: 1; }
+        .action-btn { cursor: pointer; padding: 2px; font-size: 14px; }
         .waste-row { color: var(--danger); background-color: #fffafa; }
+
+        /* Modal Styles */
+        #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
+        .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
@@ -56,98 +56,64 @@
     <div id="tab-prod" class="tab-content">
         <div class="card">
             <h3>🛠 Bags & Harvest</h3>
-            <div class="grid">
-                <input type="number" id="f-qty" placeholder="Bags filled">
-                <button onclick="addData('fill')" style="background:#1abc9c">Save</button>
-            </div>
+            <div class="grid"><input type="number" id="f-qty" placeholder="Bags filled"><button onclick="addData('fill')" style="background:#1abc9c">Save</button></div>
             <hr>
-            <div class="grid">
-                <input type="number" step="0.1" id="y-weight" placeholder="Harvest kg">
-                <button onclick="addData('yield')" style="background:var(--yield)">Save</button>
-            </div>
+            <div class="grid"><input type="number" step="0.1" id="y-weight" placeholder="Harvest kg"><button onclick="addData('yield')" style="background:var(--yield)">Save</button></div>
         </div>
-
         <div class="card" style="border-left: 5px solid var(--danger);">
             <h3>⚠️ Log Wastage</h3>
-            <select id="w-type">
-                <option value="Contaminated Bag">Contaminated Bag</option>
-                <option value="Spoilt Mushroom">Spoilt Mushroom</option>
-            </select>
-            <input type="number" step="0.1" id="w-qty" placeholder="Qty (Bags or kg)">
-            <button onclick="addData('waste')" style="background:var(--danger)">Record Loss</button>
+            <select id="w-type"><option value="Contaminated Bag">Contaminated Bag</option><option value="Spoilt Mushroom">Spoilt Mushroom</option></select>
+            <input type="number" step="0.1" id="w-qty" placeholder="Qty (Bags or kg)"><button onclick="addData('waste')" style="background:var(--danger)">Record Loss</button>
         </div>
     </div>
 
     <div id="tab-fin" class="tab-content" style="display:none;">
-        <div class="card grid" style="text-align:center; padding: 10px;">
-            <div><small>Sales</small><div id="sales-total" style="color:var(--success); font-weight:bold;">₹0</div></div>
-            <div><small>Expenses</small><div id="exp-total" style="color:var(--danger); font-weight:bold;">₹0</div></div>
-        </div>
-        
         <div class="card">
-            <select id="fin-type" onchange="toggleFin(this.value)">
-                <option value="sale">Record Sale</option>
-                <option value="exp">Record Expense</option>
-            </select>
+            <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
             <div id="div-sale">
-                <input type="text" id="s-cust" placeholder="Customer Name">
-                <input type="number" id="s-qty" placeholder="Punnets">
-                <input type="number" id="s-rate" placeholder="Rate">
-                <button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
+                <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
             <div id="div-exp" style="display:none;">
                 <select id="e-cat">
-                    <optgroup label="Staff">
-                        <option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option>
-                        <option value="Worker: Bhabhi">Bhabhi</option>
-                        <option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option>
-                    </optgroup>
-                    <optgroup label="Materials">
-                        <option value="Straw">Straw</option><option value="Spawn">Spawn</option>
-                        <option value="PP Bags">PP Bags</option><option value="Punnets">Punnets</option>
-                        <option value="Bavistine">Bavistine</option><option value="Formalin">Formalin</option>
-                    </optgroup>
-                    <optgroup label="Overheads">
-                        <option value="Rent">Rent</option><option value="Electricity">Electricity</option>
-                        <option value="Transport">Transport</option><option value="Misc">Miscellaneous</option>
-                    </optgroup>
+                    <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
+                    <optgroup label="Materials"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="PP Bags">PP Bags</option><option value="Punnets">Punnets</option><option value="Bavistine">Bavistine</option><option value="Formalin">Formalin</option></optgroup>
+                    <optgroup label="Overheads"><option value="Rent">Rent</option><option value="Electricity">Electricity</option><option value="Transport">Transport</option><option value="Misc">Miscellaneous</option></optgroup>
                 </select>
-                <input type="number" id="e-amt" placeholder="Amount (₹)">
-                <input type="number" id="e-qty" placeholder="Qty">
-                <button onclick="addData('exp')" style="background:var(--danger)">Save Expense</button>
+                <input type="number" id="e-amt" placeholder="Amount (₹)"><input type="number" id="e-qty" placeholder="Qty"><button onclick="addData('exp')" style="background:var(--danger)">Save Expense</button>
             </div>
         </div>
-        <div class="card">
-            <h3>📈 Waste & Staff Ledger</h3>
-            <div id="ledger-summary"></div>
-        </div>
+        <div class="card"><h3>📊 Ledger Summary</h3><div id="ledger-summary"></div></div>
     </div>
 </div>
 
 <div class="history-section">
     <div class="history-header">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span>📜 HISTORY</span>
-            <small id="row-count">0 Records</small>
-        </div>
-        <input type="text" id="h-search" class="search-bar" placeholder="🔍 Search (e.g. Bhabhi, Sale, Straw...)" onkeyup="filterHistory()">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><span>📜 HISTORY</span><small id="row-count">0 Records</small></div>
+        <input type="text" id="h-search" class="search-bar" placeholder="🔍 Search..." onkeyup="filterHistory()">
     </div>
     <div class="history-scroll">
         <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Detail</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>Actions</th></tr></thead>
             <tbody id="h-body"></tbody>
         </table>
     </div>
 </div>
 
+<div id="editModal">
+    <div class="modal-content">
+        <h3 id="modal-title">✏️ Edit Entry</h3>
+        <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
+        <label><small>Date</small></label><input type="date" id="edit-date">
+        <label><small>Description</small></label><input type="text" id="edit-details">
+        <div class="grid">
+            <div><label><small>Amount (₹)</small></label><input type="number" id="edit-amt"></div>
+            <div><label><small>Qty</small></label><input type="number" step="0.1" id="edit-qty"></div>
+        </div>
+        <div class="grid"><button onclick="closeEdit()">Cancel</button><button onclick="submitEdit()" style="background:var(--success)">Update</button></div>
+    </div>
+</div>
+
 <script>
-    // UPDATE YOUR URL HERE
     const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec";
     let db = [];
     let lastErr = "None";
@@ -160,45 +126,36 @@
             const r = await fetch(GOOGLE_URL);
             db = await r.json();
             render();
-            statusEl.innerText = "✓ Connected";
-            statusEl.style.color = "var(--success)";
-        } catch(e) { 
-            lastErr = e.message;
-            statusEl.innerText = "⚠ Offline";
-            statusEl.style.color = "var(--danger)";
-        }
+            statusEl.innerText = "✓ Connected"; statusEl.style.color = "var(--success)";
+        } catch(e) { lastErr = e.message; statusEl.innerText = "⚠ Offline"; statusEl.style.color = "var(--danger)"; }
     }
 
     function render() {
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
         let waste = { "Contaminated Bag": 0, "Spoilt Mushroom": 0 };
         let actB = 0, ts = 0, te = 0;
-        
         const hBody = document.getElementById('h-body');
         hBody.innerHTML = '';
         
         db.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
             const v = parseFloat(i.amt)||0, q = parseFloat(i.qty)||0;
             const det = i.details || "";
-            
             if(i.type==='sale') ts += v;
             if(i.type==='fill') actB += q;
             if(i.type==='waste') {
                 if(det.includes("Contaminated")) { waste["Contaminated Bag"] += q; actB -= q; }
                 if(det.includes("Spoilt")) waste["Spoilt Mushroom"] += q;
             }
-            if(i.type==='exp') {
-                te += v;
-                for(let w in workers) { if(det.includes(w)) workers[w]+=v; }
-            }
+            if(i.type==='exp') { te += v; for(let w in workers) { if(det.includes(w)) workers[w]+=v; } }
 
-            let rowClass = i.type === 'waste' ? 'class="waste-row"' : '';
-            let valDisplay = v ? '₹'+v : q;
-            
-            let row = `<tr ${rowClass}>
+            let row = `<tr class="${i.type==='waste'?'waste-row':''}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${det}</td>
-                <td>${valDisplay}</td>
+                <td>${v || q}</td>
+                <td style="white-space:nowrap">
+                    <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
+                    <span class="action-btn" onclick="del(${i.rowId})">🗑️</span>
+                </td>
             </tr>`;
             hBody.innerHTML += row;
         });
@@ -210,18 +167,41 @@
         document.getElementById('active-bags').innerText = actB;
 
         let ledgerHtml = `<h4>Losses</h4>`;
-        for(let w in waste) { ledgerHtml += `<div class="ledger-row"><span>${w}</span><span class="loss-text">${waste[w]}</span></div>`; }
-        ledgerHtml += `<h4>Staff Payments</h4>`;
-        for(let w in workers) { ledgerHtml += `<div class="ledger-row"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
+        for(let w in waste) { ledgerHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0;"><span>${w}</span><span style="color:red">${waste[w]}</span></div>`; }
+        ledgerHtml += `<h4 style="margin-top:10px">Staff</h4>`;
+        for(let w in workers) { ledgerHtml += `<div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0;"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
         document.getElementById('ledger-summary').innerHTML = ledgerHtml;
     }
 
-    function filterHistory() {
-        let val = document.getElementById('h-search').value.toLowerCase();
-        let rows = document.querySelectorAll('#h-body tr');
-        rows.forEach(r => {
-            r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none';
-        });
+    function startEdit(id) {
+        let i = db.find(x => x.rowId == id);
+        document.getElementById('edit-id').value = i.rowId;
+        document.getElementById('edit-type').value = i.type;
+        document.getElementById('edit-date').value = (i.date||"").split('T')[0];
+        document.getElementById('edit-details').value = i.details;
+        document.getElementById('edit-amt').value = i.amt;
+        document.getElementById('edit-qty').value = i.qty;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
+
+    async function submitEdit() {
+        let p = { action:"edit", rowId: document.getElementById('edit-id').value, 
+                  type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, 
+                  details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, 
+                  qty: document.getElementById('edit-qty').value, paidBy:"Bipin" };
+        document.getElementById('status').innerText = "⌛ Updating...";
+        await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
+        closeEdit(); setTimeout(load, 1500);
+    }
+
+    async function del(id) {
+        if(confirm("Permanently delete this entry?")) {
+            document.getElementById('status').innerText = "⌛ Deleting...";
+            await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
+            setTimeout(load, 1500);
+        }
     }
 
     async function addData(type) {
@@ -234,24 +214,22 @@
         
         document.getElementById('status').innerText = "⌛ Saving...";
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
-        
-        // Clear all inputs
         document.querySelectorAll('input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
-        
         setTimeout(load, 1500);
+    }
+
+    function filterHistory() {
+        let val = document.getElementById('h-search').value.toLowerCase();
+        document.querySelectorAll('#h-body tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none'; });
     }
 
     function openTab(e, id) {
         document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-        document.getElementById(id).style.display='block';
-        e.currentTarget.classList.add('active');
+        document.getElementById(id).style.display='block'; e.currentTarget.classList.add('active');
     }
     
-    function toggleFin(v) { 
-        document.getElementById('div-sale').style.display=v==='sale'?'block':'none'; 
-        document.getElementById('div-exp').style.display=v==='exp'?'block':'none'; 
-    }
+    function toggleFin(v) { document.getElementById('div-sale').style.display=v==='sale'?'block':'none'; document.getElementById('div-exp').style.display=v==='exp'?'block':'none'; }
 
     window.onload = load;
 </script>

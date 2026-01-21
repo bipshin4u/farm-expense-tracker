@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oyster Farm Master Gold V3</title>
+    <title>Oyster Farm Master Gold V5</title>
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --bipin: #e8f5e9; --arjun: #e3f2fd; --kotak: #fff9c4; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         
+        /* UI Components */
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .status-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
         .sync-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; }
@@ -20,7 +21,7 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Highlighting */
+        /* Row Highlighting & Status Badges */
         .row-arjun { background-color: var(--arjun) !important; }
         .row-kotak { background-color: var(--kotak) !important; }
         .row-bipin { background-color: var(--bipin) !important; }
@@ -82,7 +83,7 @@
                 <div class="grid"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"></div>
                 <div class="grid">
                     <select id="s-status" onchange="toggleSaleAcc(this.value)"><option value="Pending" selected>Pending</option><option value="Paid">Paid</option></select>
-                    <select id="s-acc"><option value="Kotak Account">To: Kotak</option><option value="Bipin">To: Bipin</option><option value="Arjun">To: Arjun</option></select>
+                    <select id="s-acc" style="visibility: hidden;"><option value="Kotak Account">To: Kotak</option><option value="Bipin">To: Bipin</option><option value="Arjun">To: Arjun</option></select>
                 </div>
                 <button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
@@ -107,7 +108,7 @@
     <div class="history-section">
         <div class="history-header">
             <span style="font-weight:bold">📜 HISTORY</span>
-            <input type="text" id="h-search" placeholder="🔍 Search..." onkeyup="filterHistory()" style="width:100%; padding:10px; margin-top:10px; border-radius:20px; border:1px solid #ddd;">
+            <input type="text" id="h-search" placeholder="🔍 Search records..." onkeyup="filterHistory()" style="width:100%; padding:10px; margin-top:10px; border-radius:20px; border:1px solid #ddd;">
         </div>
         <div style="overflow-x:auto;">
             <table>
@@ -120,13 +121,15 @@
 
 <div id="editModal">
     <div class="modal-content">
-        <h3>✏️ Edit</h3>
+        <h3>✏️ Edit Entry</h3>
         <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
         <input type="date" id="edit-date"><input type="text" id="edit-details">
         <div class="grid"><input type="number" id="edit-amt"><input type="number" step="0.1" id="edit-qty"></div>
-        <label><small>Account</small></label>
-        <select id="edit-paidBy"><option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option></select>
-        <div id="edit-status-div">
+        <div id="edit-acc-section" style="display:none;">
+            <label><small>Account</small></label>
+            <select id="edit-paidBy"><option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option><option value="">None</option></select>
+        </div>
+        <div id="edit-status-section" style="display:none;">
             <label><small>Status</small></label>
             <select id="edit-status"><option value="Paid">Paid</option><option value="Pending">Pending</option></select>
         </div>
@@ -135,7 +138,7 @@
 </div>
 
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbym2_t7cNf3XN6_OcgFHCkx8LF4dgQm4myKN18Ly1MWktt1RWG_-eCMzV8DVyM9YFHg/exec";
+    const GOOGLE_URL = "YOUR_NEW_DEPLOYMENT_URL_HERE"; 
     let db = [];
 
     function safeSet(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
@@ -156,36 +159,41 @@
         let balances = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
         let actB = 0, ts = 0, te = 0, pendingCollect = 0;
         const hBody = document.getElementById('h-body');
-        if(!hBody) return;
-        hBody.innerHTML = '';
+        if(!hBody) return; hBody.innerHTML = '';
         
         db.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
             const v = parseFloat(i.amt) || 0;
             const q = parseFloat(i.qty) || 0;
             const detRaw = (i.details || "").toString();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
-            const pStatus = (i.status || "Paid");
+            
+            // Logic for defaulting empty statuses to Pending for sales
+            let pStatus = i.status;
+            if (rawTag === 'sale' && (!pStatus || pStatus === "")) pStatus = "Pending";
+            else if (!pStatus) pStatus = "Paid";
 
-            // ACCOUNT SCANNER
+            // Account Scanner (Brute Force)
             let rowWho = "";
             for (let key in i) {
                 let cellVal = (i[key] || "").toString().toLowerCase();
                 if (cellVal.includes("arjun")) { rowWho = "Arjun"; break; }
-                if (cellVal.includes("kotak")) { rowWho = "Kotak"; break; }
+                if (cellVal.includes("kotak")) { rowWho = "Kotak Account"; break; }
                 if (cellVal.includes("bipin")) { rowWho = "Bipin"; break; }
             }
             
             let rowClass = "";
-            let displayBy = rowWho || "Bipin"; 
+            let displayBy = rowWho || ""; 
 
+            // Expenses
             if (rawTag === 'exp' || detRaw.toLowerCase().startsWith('expense:')) {
                 te += v;
-                balances[displayBy] -= v;
+                if(displayBy) balances[displayBy] -= v;
                 if (displayBy === "Arjun") rowClass = "row-arjun";
                 else if (displayBy === "Kotak Account") rowClass = "row-kotak";
-                else rowClass = "row-bipin";
+                else if (displayBy === "Bipin") rowClass = "row-bipin";
             }
 
+            // Sales
             if (rawTag === 'sale') {
                 ts += v;
                 if(pStatus === "Pending") {
@@ -193,13 +201,14 @@
                     pendingCollect += v;
                     displayBy = "-";
                 } else {
-                    balances[displayBy] += v;
+                    if(displayBy) balances[displayBy] += v;
                     if (displayBy === "Arjun") rowClass = "row-arjun";
                     else if (displayBy === "Kotak Account") rowClass = "row-kotak";
-                    else rowClass = "row-bipin";
+                    else if (displayBy === "Bipin") rowClass = "row-bipin";
                 }
             }
 
+            // Production & Workers
             if (rawTag === 'waste') rowClass = "row-waste";
             if (rawTag === 'fill') actB += q;
             if (rawTag === 'waste' && detRaw.toLowerCase().includes("contaminated")) actB -= q;
@@ -215,7 +224,7 @@
                 <td>${detRaw} ${badge}</td>
                 <td>${v || q}</td>
                 <td>${displayBy}</td> 
-                <td>
+                <td style="white-space:nowrap">
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
                     <span class="action-btn" onclick="delEntry(${i.rowId})">🗑️</span>
                     ${payBtn}
@@ -229,7 +238,7 @@
         
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
-            let html = `<b>Staff Totals (Out)</b><hr>`;
+            let html = `<b>Staff Totals</b><hr>`;
             for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w].toFixed(2)}</b></div>`; }
             html += `<br><b>Net Cash in Account</b><hr>`;
             for(let acc in balances) { 
@@ -241,20 +250,16 @@
     }
 
     async function addData(type) {
-        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "", status: "Pending" };
-        if(type==='exp'){ p.paidBy = document.getElementById('e-acc').value; p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; p.status = "Paid"; } // Expenses are always "Paid" by default
-        if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
-        if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
-        if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
-        if(type==='sale'){ 
-            p.qty=document.getElementById('s-qty').value; 
-            p.amt=p.qty*document.getElementById('s-rate').value; 
-            p.details="Sale: "+document.getElementById('s-cust').value;
-            p.status=document.getElementById('s-status').value;
-            // Only assign an account if it's marked as Paid
-            p.paidBy = (p.status === "Pending") ? "" : document.getElementById('s-acc').value;
+        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "", status: "Paid" };
+        if(type==='exp'){ p.paidBy = document.getElementById('e-acc').value; p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
+        else if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
+        else if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
+        else if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
+        else if(type==='sale'){ 
+            p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; 
+            p.details="Sale: "+document.getElementById('s-cust').value; p.status=document.getElementById('s-status').value;
+            p.paidBy= (p.status === "Pending") ? "" : document.getElementById('s-acc').value;
         }
-        
         safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         document.querySelectorAll('.main-container input').forEach(input => { input.value = ''; });
@@ -262,9 +267,9 @@
     }
 
     async function markAsPaid(id) {
-        let entry = db.find(x => x.rowId == id);
-        let acc = prompt("Receive into which account? (Kotak/Bipin/Arjun)", "Kotak Account");
+        let acc = prompt("Receive into which account? (Kotak Account/Bipin/Arjun)", "Kotak Account");
         if(!acc) return;
+        let entry = db.find(x => x.rowId == id);
         let p = { action:"edit", rowId:id, date:entry.date, type:entry.type, details:entry.details, amt:entry.amt, qty:entry.qty, paidBy:acc, status:"Paid" };
         safeSet('status', "⌛ Updating Account...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
@@ -272,7 +277,7 @@
     }
 
     async function delEntry(id) {
-        if(confirm("Delete?")) {
+        if(confirm("Delete record?")) {
             safeSet('status', "⌛ Deleting...");
             await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
             setTimeout(load, 1500);
@@ -288,9 +293,12 @@
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
-        document.getElementById('edit-status-div').style.display = (i.type === 'sale') ? 'block' : 'none';
+        
+        let isFin = (i.type === 'exp' || i.type === 'sale');
+        document.getElementById('edit-acc-section').style.display = isFin ? 'block' : 'none';
+        document.getElementById('edit-status-section').style.display = (i.type === 'sale') ? 'block' : 'none';
         document.getElementById('edit-status').value = i.status || 'Paid';
-        document.getElementById('edit-paidBy').value = i.paidBy || 'Bipin';
+        document.getElementById('edit-paidBy').value = i.paidBy || '';
         document.getElementById('editModal').style.display = 'block';
     }
 

@@ -7,35 +7,27 @@
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
-        
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .main-container { padding: 10px 15px; }
-        
         .tab-bar { display: flex; background: #eee; margin-bottom: 15px; border-radius: 10px; padding: 4px; }
         .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 12px; color: #666; }
         .tab-btn.active { background: white; color: var(--dark); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
+        /* Highlighting - Increased Specificity */
         .row-arjun { background-color: #e3f2fd !important; }
         .row-kotak { background-color: #fff9c4 !important; }
-        .row-waste { color: var(--danger); background-color: #ffebee !important; }
+        .row-waste { background-color: #ffebee !important; color: var(--danger) !important; }
 
         .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .history-header { 
-            padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; 
-            position: sticky; top: 75px; z-index: 150; 
-        }
+        .history-header { padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; position: sticky; top: 75px; z-index: 150; }
         .search-bar { padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
-        
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td, th { padding: 12px 6px; border-bottom: 1px solid #eee; text-align: left; }
-        .action-btn { cursor: pointer; font-size: 16px; margin-right: 12px; display: inline-block; }
-        .del-btn { color: var(--danger); }
-        
+        .action-btn { cursor: pointer; font-size: 16px; margin-right: 12px; }
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
         .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
     </style>
@@ -58,12 +50,12 @@
 
     <div id="tab-prod" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">🛠 Production</h3>
+            <h3>🛠 Production</h3>
             <div class="grid"><input type="number" id="f-qty" placeholder="Bags filled"><button onclick="addData('fill')" style="background:#1abc9c">Save</button></div>
             <div class="grid"><input type="number" step="0.1" id="y-weight" placeholder="Harvest kg"><button onclick="addData('yield')" style="background:var(--yield)">Save</button></div>
         </div>
         <div class="card" style="border-left: 5px solid var(--danger);">
-            <h3 style="margin-top:0">⚠️ Wastage</h3>
+            <h3>⚠️ Wastage</h3>
             <select id="w-type"><option value="Contaminated Bag">Contaminated Bag</option><option value="Spoilt Mushroom">Spoilt Mushroom</option></select>
             <input type="number" step="0.1" id="w-qty" placeholder="Quantity"><button onclick="addData('waste')" style="background:var(--danger)">Record Loss</button>
         </div>
@@ -71,14 +63,10 @@
 
     <div id="tab-fin" class="tab-content" style="display:none;">
         <div class="card">
-            <h3 style="margin-top:0">💰 Transactions</h3>
+            <h3>💰 Transactions</h3>
             <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
             <div id="acc-div" style="display:none;">
-                <select id="acc-select">
-                    <option value="Bipin">Account: Bipin</option>
-                    <option value="Arjun">Account: Arjun</option>
-                    <option value="Kotak Account">Account: Kotak</option>
-                </select>
+                <select id="acc-select"><option value="Bipin">Account: Bipin</option><option value="Arjun">Account: Arjun</option><option value="Kotak Account">Account: Kotak</option></select>
             </div>
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
@@ -121,15 +109,10 @@
         <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
         <label><small>Date</small></label><input type="date" id="edit-date">
         <input type="text" id="edit-details">
-        <div class="grid">
-            <input type="number" id="edit-amt" placeholder="Amt">
-            <input type="number" step="0.1" id="edit-qty" placeholder="Qty">
-        </div>
+        <div class="grid"><input type="number" id="edit-amt"><input type="number" step="0.1" id="edit-qty"></div>
         <div id="edit-acc-div">
             <label><small>Paid By</small></label>
-            <select id="edit-paidBy">
-                <option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option>
-            </select>
+            <select id="edit-paidBy"><option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option></select>
         </div>
         <div class="grid"><button onclick="closeEdit()">Cancel</button><button onclick="submitEdit()" style="background:var(--success)">Update</button></div>
     </div>
@@ -167,21 +150,28 @@
             const detLower = detRaw.toLowerCase();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
 
-            // DIRECT KEY ACCESS (matched to your debugger output)
-            let whoPaid = (i.paidBy || "").toString().trim();
-            const isExp = (rawTag === 'exp' || detLower.startsWith('expense:'));
+            // 1. BRUTE FORCE SEARCH: Find 'paidBy' content no matter the key name
+            let whoPaidVal = "";
+            for (let k in i) {
+                if(k.toLowerCase().includes("paidby") || k.toLowerCase() === "by") {
+                    whoPaidVal = (i[k] || "").toString().trim();
+                    break;
+                }
+            }
             
+            const isExp = (rawTag === 'exp' || detLower.startsWith('expense:'));
             let rowClass = "";
             let tableDisplayName = ""; 
 
+            // 2. LOGIC FOR EXPENSES & COLORS
             if (isExp) {
                 te += v;
-                // Check content of paidBy to assign to ledger and color
-                if (whoPaid.toLowerCase().includes("arjun")) {
+                // Identify the person based on string content
+                if (whoPaidVal.toLowerCase().includes("arjun")) {
                     accounts["Arjun"] += v;
                     rowClass = "row-arjun";
                     tableDisplayName = "Arjun";
-                } else if (whoPaid.toLowerCase().includes("kotak")) {
+                } else if (whoPaidVal.toLowerCase().includes("kotak")) {
                     accounts["Kotak Account"] += v;
                     rowClass = "row-kotak";
                     tableDisplayName = "Kotak";
@@ -196,6 +186,7 @@
             if (rawTag === 'fill') actB += q;
             if (rawTag === 'waste' && detLower.includes("contaminated")) actB -= q;
 
+            // Worker calculation
             if (detLower.includes("pallavi")) workers["Pallavi Mavshi"] += v;
             else if (detLower.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
             else if (detLower.includes("bhabhi")) workers["Bhabhi"] += v;
@@ -207,7 +198,7 @@
                 <td style="font-weight:bold;">${tableDisplayName}</td> 
                 <td style="white-space:nowrap">
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
-                    <span class="action-btn del-btn" onclick="delEntry(${i.rowId})">🗑️</span>
+                    <span class="action-btn" onclick="delEntry(${i.rowId})">🗑️</span>
                 </td>
             </tr>`;
         });
@@ -218,9 +209,9 @@
 
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
-            let html = `<b>Staff Totals</b>`;
+            let html = `<b>Staff Totals</b><hr>`;
             for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w].toFixed(2)}</b></div>`; }
-            html += `<hr><b>Expenses by Account</b>`;
+            html += `<br><b>Expenses by Account</b><hr>`;
             for(let acc in accounts) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b>₹${accounts[acc].toFixed(2)}</b></div>`; }
             ledSum.innerHTML = html;
         }
@@ -249,11 +240,7 @@
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
-        const accDiv = document.getElementById('edit-acc-div');
-        if(document.getElementById('edit-type').value === 'exp') { 
-            accDiv.style.display = 'block'; 
-            document.getElementById('edit-paidBy').value = (i.paidBy || "Bipin"); 
-        } else { accDiv.style.display = 'none'; }
+        document.getElementById('edit-acc-div').style.display = (document.getElementById('edit-type').value === 'exp') ? 'block' : 'none';
         document.getElementById('editModal').style.display = 'block';
     }
 

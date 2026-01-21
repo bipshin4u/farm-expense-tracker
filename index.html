@@ -6,7 +6,7 @@
     <title>Oyster Farm Master Pro</title>
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --forecast: #6c5ce7; }
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 30px; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 30px; color: var(--dark); }
         .header-status { background: white; padding: 15px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; text-align: center; }
         .tab-bar { display: flex; background: #eee; margin: 15px; border-radius: 10px; padding: 4px; }
         .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 11px; color: #666; }
@@ -16,39 +16,36 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
-        .stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .stock-item { padding: 8px; border-radius: 6px; background: #f8f9fa; border-left: 3px solid #ddd; font-size: 10px; }
-        .low-stock { border-left-color: var(--danger); background: #fff1f1; }
+        .ledger-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
-        #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
-        .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
-        .ledger-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #eee; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="header-status">
-    <div id="status" onclick="showDebug()" style="font-size:11px; cursor:pointer; font-weight:bold; margin-bottom:5px;">⌛ Connecting...</div>
+    <div id="status" onclick="showDebug()" style="font-size:12px; cursor:pointer; font-weight:bold; margin-bottom:5px; color: orange;">⌛ Connecting...</div>
     <div class="grid">
         <div><small>Active Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
-        <div><small>Avg Yield/Bag</small><div id="yield-bag" style="font-weight:bold; color:var(--success)">0 kg</div></div>
+        <div><small>Sales Total</small><div id="sales-total" style="font-weight:bold; color:var(--success)">₹0</div></div>
     </div>
 </div>
 
 <div class="container">
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="openTab(event, 'tab-prod')">PROD</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-fin')">FINANCE</button>
+        <button class="tab-btn" onclick="openTab(event, 'tab-hist')">HISTORY</button>
+    </div>
+
     <div id="tab-prod" class="tab-content">
         <div class="card">
-            <h3>🛠 Production</h3>
+            <h3>🛠 Log Bags</h3>
             <input type="number" id="f-qty" placeholder="Bags filled">
             <button onclick="addData('fill')" style="background:#1abc9c">Save Production</button>
             <hr>
             <input type="number" step="0.1" id="y-weight" placeholder="Harvest Weight (kg)">
             <button onclick="addData('yield')" style="background:var(--yield)">Save Harvest</button>
-        </div>
-        <div class="card">
-            <h3>📦 Stock Runway</h3>
-            <div id="stock-display" class="stock-grid"></div>
         </div>
     </div>
 
@@ -66,14 +63,14 @@
             </div>
             <div id="div-exp" style="display:none;">
                 <select id="e-cat">
-                    <optgroup label="Raw Materials">
-                        <option value="Straw">Straw</option><option value="Spawn">Spawn</option>
-                        <option value="Bavistine">Bavistine</option><option value="Formalin">Formalin</option>
-                    </optgroup>
                     <optgroup label="Staff">
                         <option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option>
                         <option value="Worker: Bhabhi">Bhabhi</option>
                         <option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option>
+                    </optgroup>
+                    <optgroup label="Materials">
+                        <option value="Straw">Straw</option><option value="Spawn">Spawn</option>
+                        <option value="Bavistine">Bavistine</option><option value="Formalin">Formalin</option>
                     </optgroup>
                 </select>
                 <input type="number" id="e-amt" placeholder="Amount (₹)">
@@ -82,21 +79,15 @@
             </div>
         </div>
         <div class="card">
-            <h3>👩‍🌾 Payment Ledger</h3>
+            <h3>👩‍🌾 Worker Ledger</h3>
             <div id="worker-list"></div>
         </div>
     </div>
 
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="openTab(event, 'tab-prod')">PROD</button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-fin')">FINANCE</button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-hist')">HISTORY</button>
-    </div>
-
     <div id="tab-hist" class="tab-content" style="display:none;">
         <div class="card" style="overflow-x:auto;">
-            <table id="h-table">
-                <thead><tr><th>Date</th><th>Detail</th><th>Amt/Qty</th></tr></thead>
+            <table>
+                <thead><tr><th>Date</th><th>Detail</th><th>Value</th></tr></thead>
                 <tbody id="h-body"></tbody>
             </table>
         </div>
@@ -104,21 +95,17 @@
 </div>
 
 <script>
-    // UPDATE THIS URL!
-    // const GOOGLE_URL = "YOUR_NEW_DEPLOYMENT_URL_HERE";
+    // PASTE YOUR URL BELOW
     const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec";
     let db = [];
     let lastErr = "None";
 
-    function showDebug() {
-        alert("Debug Info:\nURL: " + GOOGLE_URL + "\nLast Error: " + lastErr);
-    }
+    function showDebug() { alert("Debug Info:\nURL: " + GOOGLE_URL + "\nLast Error: " + lastErr); }
 
     async function load() {
         const statusEl = document.getElementById('status');
         try {
             const r = await fetch(GOOGLE_URL);
-            if (!r.ok) throw new Error("HTTP " + r.status);
             db = await r.json();
             render();
             statusEl.innerText = "✓ Connected";
@@ -130,40 +117,39 @@
         }
     }
 
-    // (Include the render, addData, openTab functions from previous version here)
-    // For brevity, ensuring the logic remains the same for worker names.
-
     function render() {
-        let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0 };
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
-        let tf=0, ty=0, ts=0, te=0;
+        let actB = 0, ts = 0;
+        
+        // Safety Check: Clear existing lists
+        const hBody = document.getElementById('h-body');
+        const wList = document.getElementById('worker-list');
+        if (!hBody || !wList) return; 
 
+        hBody.innerHTML = '';
+        
         db.forEach(i => {
             const v = parseFloat(i.amt)||0, q = parseFloat(i.qty)||0;
             const det = i.details || "";
-            if(i.type==='exp'){
-                te += v;
-                if(det.includes("Straw")) s["Straw"]+=q;
-                if(det.includes("Spawn")) s["Spawn"]+=q;
+            
+            if(i.type==='sale') ts += v;
+            if(i.type==='fill') actB += q;
+            if(i.type==='exp') {
                 for(let w in workers) { if(det.includes(w)) workers[w]+=v; }
             }
-            if(i.type==='sale') ts+=v;
-            if(i.type==='fill') tf+=q;
-            if(i.type==='yield') ty+=v;
+
+            let row = `<tr><td>${(i.date||"").split('T')[0]}</td><td>${det}</td><td>${v||q}</td></tr>`;
+            hBody.innerHTML += row;
         });
 
-        document.getElementById('sales-total').innerText = '₹'+ts;
-        document.getElementById('exp-total').innerText = '₹'+te;
-        
+        document.getElementById('sales-total').innerText = '₹' + ts;
+        document.getElementById('active-bags').innerText = actB;
+
         let workH = '';
-        for(let w in workers) { workH += `<div class="ledger-row"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
-        document.getElementById('worker-list').innerHTML = workH;
-
-        let histH = '';
-        db.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(i => {
-            histH += `<tr><td>${i.date.split('T')[0]}</td><td>${i.details}</td><td>${i.amt||i.qty}</td></tr>`;
-        });
-        document.getElementById('h-body').innerHTML = histH;
+        for(let w in workers) { 
+            workH += `<div class="ledger-row"><span>${w}</span><b>₹${workers[w]}</b></div>`; 
+        }
+        wList.innerHTML = workH;
     }
 
     async function addData(type) {
@@ -173,6 +159,7 @@
         if(type==='sale'){ p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; p.details="Sale: "+document.getElementById('s-cust').value; }
         if(type==='exp'){ p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
         
+        document.getElementById('status').innerText = "⌛ Saving...";
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         setTimeout(load, 1500);
     }
@@ -183,7 +170,11 @@
         document.getElementById(id).style.display='block';
         e.currentTarget.classList.add('active');
     }
-    function toggleFin(v) { document.getElementById('div-sale').style.display=v==='sale'?'block':'none'; document.getElementById('div-exp').style.display=v==='exp'?'block':'none'; }
+    
+    function toggleFin(v) { 
+        document.getElementById('div-sale').style.display=v==='sale'?'block':'none'; 
+        document.getElementById('div-exp').style.display=v==='exp'?'block':'none'; 
+    }
 
     window.onload = load;
 </script>

@@ -6,7 +6,7 @@
     <title>Oyster Farm Master Pro</title>
     <style>
         :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; }
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; } /* Removed fixed height */
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 100; }
         .main-container { padding: 10px 15px; }
@@ -20,19 +20,19 @@
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Account Colors */
+        /* Account Row Colors */
         .row-arjun { background-color: #e3f2fd !important; }
         .row-kotak { background-color: #fff9c4 !important; }
         .row-waste { color: var(--danger); background-color: #ffebee !important; }
 
-        /* History - Now flows naturally */
         .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
         .history-header { padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; }
         .search-bar { padding: 8px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
         
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        td, th { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: left; }
-        .action-btn { cursor: pointer; font-size: 16px; }
+        td, th { padding: 12px 6px; border-bottom: 1px solid #eee; text-align: left; }
+        .action-btn { cursor: pointer; font-size: 16px; margin-right: 8px; display: inline-block; }
+        .del-btn { color: var(--danger); }
         
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
         .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
@@ -70,15 +70,23 @@
     <div id="tab-fin" class="tab-content" style="display:none;">
         <div class="card">
             <h3 style="margin-top:0">💰 Transactions</h3>
-            <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
-            <select id="acc-select">
-                <option value="Bipin">Account: Bipin</option>
-                <option value="Arjun">Account: Arjun</option>
-                <option value="Kotak Account">Account: Kotak</option>
+            <select id="fin-type" onchange="toggleFin(this.value)">
+                <option value="sale">Record Sale</option>
+                <option value="exp">Record Expense</option>
             </select>
+            
+            <div id="acc-div" style="display:none;">
+                <select id="acc-select">
+                    <option value="Bipin">Account: Bipin</option>
+                    <option value="Arjun">Account: Arjun</option>
+                    <option value="Kotak Account">Account: Kotak</option>
+                </select>
+            </div>
+
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
+            
             <div id="div-exp" style="display:none;">
                 <select id="e-cat">
                     <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
@@ -104,7 +112,7 @@
         </div>
         <div style="overflow-x:auto;">
             <table>
-                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th></th></tr></thead>
+                <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th>Actions</th></tr></thead>
                 <tbody id="h-body"></tbody>
             </table>
         </div>
@@ -116,14 +124,20 @@
         <h3>✏️ Edit Entry</h3>
         <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
         <label><small>Date</small></label><input type="date" id="edit-date">
-        <input type="text" id="edit-details" placeholder="Details">
+        <input type="text" id="edit-details">
         <div class="grid">
             <input type="number" id="edit-amt" placeholder="Amt">
             <input type="number" step="0.1" id="edit-qty" placeholder="Qty">
         </div>
-        <select id="edit-paidBy">
-            <option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option>
-        </select>
+        <div id="edit-acc-div">
+            <label><small>Paid By</small></label>
+            <select id="edit-paidBy">
+                <option value="">N/A</option>
+                <option value="Bipin">Bipin</option>
+                <option value="Arjun">Arjun</option>
+                <option value="Kotak Account">Kotak Account</option>
+            </select>
+        </div>
         <div class="grid"><button onclick="closeEdit()">Cancel</button><button onclick="submitEdit()" style="background:var(--success)">Update</button></div>
     </div>
 </div>
@@ -140,8 +154,8 @@
             const r = await fetch(GOOGLE_URL);
             db = await r.json();
             render();
-            const statusEl = document.getElementById('status');
-            if(statusEl) { statusEl.innerText = "✓ Connected"; statusEl.style.color = "var(--success)"; }
+            safeSet('status', "✓ Connected");
+            document.getElementById('status').style.color = "var(--success)";
         } catch(e) { safeSet('status', "⚠ Offline"); }
     }
 
@@ -149,24 +163,22 @@
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
         let accounts = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
         let actB = 0, ts = 0, te = 0;
-        
         const hBody = document.getElementById('h-body');
         if(!hBody) return;
         hBody.innerHTML = '';
         
         db.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
             const v = parseFloat(i.amt)||0, q = parseFloat(i.qty)||0;
-            const detRaw = (i.details || "");
-            const det = detRaw.toLowerCase();
-            const paidBy = i.paidBy || "Bipin";
+            const detRaw = i.details || "";
+            const paidBy = (i.type === 'exp') ? (i.paidBy || "Bipin") : "";
             
-            if(det.includes("pallavi")) workers["Pallavi Mavshi"] += v;
-            else if(det.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
-            else if(det.includes("bhabhi")) workers["Bhabhi"] += v;
+            if(detRaw.toLowerCase().includes("pallavi")) workers["Pallavi Mavshi"] += v;
+            else if(detRaw.toLowerCase().includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
+            else if(detRaw.toLowerCase().includes("bhabhi")) workers["Bhabhi"] += v;
 
             if(i.type === 'sale') ts += v;
             if(i.type === 'fill') actB += q;
-            if(i.type === 'waste' && det.includes("contaminated")) actB -= q;
+            if(i.type === 'waste' && detRaw.toLowerCase().includes("contaminated")) actB -= q;
             if(i.type === 'exp') {
                 te += v;
                 if(accounts.hasOwnProperty(paidBy)) accounts[paidBy] += v;
@@ -182,7 +194,10 @@
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
                 <td>${paidBy.split(' ')[0]}</td>
-                <td><span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span></td>
+                <td style="white-space:nowrap">
+                    <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
+                    <span class="action-btn del-btn" onclick="delEntry(${i.rowId})">🗑️</span>
+                </td>
             </tr>`;
         });
 
@@ -201,7 +216,9 @@
     }
 
     async function addData(type) {
-        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: document.getElementById('acc-select').value };
+        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: "" };
+        if(type==='exp') p.paidBy = document.getElementById('acc-select').value;
+        
         if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
         if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
         if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
@@ -210,7 +227,7 @@
         
         safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
-        document.querySelectorAll('.top-content input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
+        document.querySelectorAll('.main-container input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
         setTimeout(load, 1500);
     }
 
@@ -218,22 +235,42 @@
         let i = db.find(x => x.rowId == id);
         if(!i) return;
         document.getElementById('edit-id').value = i.rowId;
-        document.getElementById('edit-type').value = i.type || 'exp';
+        document.getElementById('edit-type').value = i.type;
         document.getElementById('edit-date').value = (i.date||"").split('T')[0];
         document.getElementById('edit-details').value = i.details;
         document.getElementById('edit-amt').value = i.amt;
         document.getElementById('edit-qty').value = i.qty;
-        document.getElementById('edit-paidBy').value = i.paidBy || "Bipin";
+        
+        const accDiv = document.getElementById('edit-acc-div');
+        if(i.type === 'exp') {
+            accDiv.style.display = 'block';
+            document.getElementById('edit-paidBy').value = i.paidBy || "Bipin";
+        } else {
+            accDiv.style.display = 'none';
+            document.getElementById('edit-paidBy').value = "";
+        }
         document.getElementById('editModal').style.display = 'block';
     }
-
-    function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
 
     async function submitEdit() {
         let p = { action:"edit", rowId: document.getElementById('edit-id').value, type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, qty: document.getElementById('edit-qty').value, paidBy: document.getElementById('edit-paidBy').value };
         safeSet('status', "⌛ Updating...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         closeEdit(); setTimeout(load, 1500);
+    }
+
+    async function delEntry(id) {
+        if(confirm("Are you sure you want to delete this record?")) {
+            safeSet('status', "⌛ Deleting...");
+            await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
+            setTimeout(load, 1500);
+        }
+    }
+
+    function toggleFin(v) { 
+        document.getElementById('div-sale').style.display = v==='sale'?'block':'none'; 
+        document.getElementById('div-exp').style.display = v==='exp'?'block':'none'; 
+        document.getElementById('acc-div').style.display = v==='exp'?'block':'none'; 
     }
 
     function filterHistory() {
@@ -245,7 +282,7 @@
         document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
         document.getElementById(id).style.display='block'; e.currentTarget.classList.add('active');
     }
-    function toggleFin(v) { document.getElementById('div-sale').style.display=v==='sale'?'block':'none'; document.getElementById('div-exp').style.display=v==='exp'?'block':'none'; }
+    function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
     window.onload = load;
 </script>
 </body>

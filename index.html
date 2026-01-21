@@ -16,26 +16,32 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
+        
+        /* Account Colors */
+        .row-arjun { background-color: #e3f2fd !important; }
+        .row-kotak { background-color: #fff9c4 !important; }
+        .row-waste { color: var(--danger); background-color: #ffebee !important; }
+
         .history-section { height: 40vh; background: white; border-top: 2px solid #ddd; display: flex; flex-direction: column; flex-shrink: 0; }
         .history-header { padding: 10px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; }
         .search-bar { padding: 8px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 12px; margin-top: 5px; }
         .history-scroll { flex: 1; overflow-y: auto; padding: 0 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
         th { position: sticky; top: 0; background: #fff; z-index: 1; }
         .action-btn { cursor: pointer; padding: 2px; font-size: 14px; }
-        .waste-row { color: var(--danger); background-color: #fffafa; }
+        
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
-        .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
+        .modal-content { background:white; margin:10% auto; padding:20px; width:85%; border-radius:12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
 <div class="header-status">
-    <div id="status" style="font-size:12px; font-weight:bold; margin-bottom:5px; color: orange;">⌛ Connecting...</div>
+    <div id="status" style="font-size:11px; font-weight:bold; color: orange;">⌛ Connecting...</div>
     <div class="grid">
         <div><small>Active Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
-        <div><small>Net Profit</small><div id="net-profit" style="font-weight:bold; color:var(--success)">₹0</div></div>
+        <div><small>Profit</small><div id="net-profit" style="font-weight:bold; color:var(--success)">₹0</div></div>
     </div>
 </div>
 
@@ -60,27 +66,28 @@
     </div>
 
     <div id="tab-fin" class="tab-content" style="display:none;">
-        <div class="card grid" style="text-align:center;">
-            <div><small>Sales</small><div id="sales-total" style="font-weight:bold; color:var(--success)">₹0</div></div>
-            <div><small>Expenses</small><div id="exp-total" style="font-weight:bold; color:var(--danger)">₹0</div></div>
-        </div>
         <div class="card">
             <select id="fin-type" onchange="toggleFin(this.value)"><option value="sale">Record Sale</option><option value="exp">Record Expense</option></select>
+            <select id="acc-select">
+                <option value="Bipin">Paid By: Bipin</option>
+                <option value="Arjun">Paid By: Arjun</option>
+                <option value="Kotak Account">Paid By: Kotak</option>
+            </select>
             <div id="div-sale">
                 <input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets"><input type="number" id="s-rate" placeholder="Rate"><button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
             </div>
             <div id="div-exp" style="display:none;">
                 <select id="e-cat">
                     <optgroup label="Staff"><option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option><option value="Worker: Bhabhi">Bhabhi</option><option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option></optgroup>
-                    <optgroup label="Materials"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="PP Bags">PP Bags</option><option value="Punnets">Punnets</option></optgroup>
-                    <optgroup label="Overheads"><option value="Rent">Rent</option><option value="Electricity">Electricity</option><option value="Transport">Transport</option><option value="Misc">Misc</option></optgroup>
+                    <optgroup label="Materials"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="PP Bags">PP Bags</option></optgroup>
+                    <optgroup label="Other"><option value="Rent">Rent</option><option value="Electricity">Electricity</option><option value="Transport">Transport</option><option value="Misc">Misc</option></optgroup>
                 </select>
                 <input type="number" id="e-amt" placeholder="Amount (₹)"><input type="number" id="e-qty" placeholder="Qty"><button onclick="addData('exp')" style="background:var(--danger)">Save Expense</button>
             </div>
         </div>
         <div class="card">
             <h3>📊 Ledger Summary</h3>
-            <div id="ledger-summary">Loading summary...</div>
+            <div id="ledger-summary">Loading...</div>
         </div>
     </div>
 </div>
@@ -88,11 +95,11 @@
 <div class="history-section">
     <div class="history-header">
         <div style="display:flex; justify-content:space-between; align-items:center;"><span>📜 HISTORY</span><small id="row-count">0 Records</small></div>
-        <input type="text" id="h-search" class="search-bar" placeholder="🔍 Search..." onkeyup="filterHistory()">
+        <input type="text" id="h-search" class="search-bar" placeholder="🔍 Search History..." onkeyup="filterHistory()">
     </div>
     <div class="history-scroll">
-        <table>
-            <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>Actions</th></tr></thead>
+        <table id="h-table">
+            <thead><tr><th>Date</th><th>Detail</th><th>Val</th><th>By</th><th>Act</th></tr></thead>
             <tbody id="h-body"></tbody>
         </table>
     </div>
@@ -101,27 +108,27 @@
 <div id="editModal">
     <div class="modal-content">
         <h3>✏️ Edit Entry</h3>
-        <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
+        <input type="hidden" id="edit-id">
+        <input type="hidden" id="edit-type">
         <label><small>Date</small></label><input type="date" id="edit-date">
         <label><small>Description</small></label><input type="text" id="edit-details">
         <div class="grid">
             <div><label><small>Amount (₹)</small></label><input type="number" id="edit-amt"></div>
             <div><label><small>Qty</small></label><input type="number" step="0.1" id="edit-qty"></div>
         </div>
+        <label><small>Paid By</small></label>
+        <select id="edit-paidBy">
+            <option value="Bipin">Bipin</option><option value="Arjun">Arjun</option><option value="Kotak Account">Kotak Account</option>
+        </select>
         <div class="grid"><button onclick="closeEdit()">Cancel</button><button onclick="submitEdit()" style="background:var(--success)">Update</button></div>
     </div>
 </div>
 
 <script>
-    // ⚠️ UPDATE YOUR URL HERE
     const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec";
     let db = [];
 
-    // Helper to safely set text without crashing
-    function safeSet(id, val) {
-        const el = document.getElementById(id);
-        if (el) el.innerText = val;
-    }
+    function safeSet(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
 
     async function load() {
         safeSet('status', "⌛ Connecting...");
@@ -131,15 +138,12 @@
             render();
             const statusEl = document.getElementById('status');
             if(statusEl) { statusEl.innerText = "✓ Connected"; statusEl.style.color = "var(--success)"; }
-        } catch(e) { 
-            safeSet('status', "⚠ Offline - Check URL");
-            console.error(e);
-        }
+        } catch(e) { safeSet('status', "⚠ Offline"); }
     }
 
     function render() {
         let workers = { "Pallavi Mavshi": 0, "Bhabhi": 0, "Sangeeta Mavshi": 0 };
-        let waste = { "Contaminated Bag": 0, "Spoilt Mushroom": 0 };
+        let accounts = { "Bipin": 0, "Arjun": 0, "Kotak Account": 0 };
         let actB = 0, ts = 0, te = 0;
         
         const hBody = document.getElementById('h-body');
@@ -150,87 +154,98 @@
             const v = parseFloat(i.amt)||0, q = parseFloat(i.qty)||0;
             const detRaw = (i.details || "");
             const det = detRaw.toLowerCase();
+            const paidBy = i.paidBy || "Bipin";
             
-            if(i.type==='sale') ts += v;
-            if(i.type==='fill') actB += q;
-            if(i.type==='waste') {
-                if(det.includes("contaminated")) { waste["Contaminated Bag"] += q; actB -= q; }
-                if(det.includes("spoilt")) waste["Spoilt Mushroom"] += q;
-            }
-            if(i.type==='exp') { 
-                te += v; 
-                if(det.includes("pallavi")) workers["Pallavi Mavshi"] += v;
-                if(det.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
-                if(det.includes("bhabhi")) workers["Bhabhi"] += v;
+            // Worker detection (matches any mention of name)
+            if(det.includes("pallavi")) workers["Pallavi Mavshi"] += v;
+            else if(det.includes("sangeeta")) workers["Sangeeta Mavshi"] += v;
+            else if(det.includes("bhabhi")) workers["Bhabhi"] += v;
+
+            // Totals
+            if(i.type === 'sale') ts += v;
+            if(i.type === 'fill') actB += q;
+            if(i.type === 'waste' && det.includes("contaminated")) actB -= q;
+            if(i.type === 'exp') {
+                te += v;
+                if(accounts.hasOwnProperty(paidBy)) accounts[paidBy] += v;
             }
 
-            hBody.innerHTML += `<tr class="${i.type==='waste'?'waste-row':''}">
+            // Row Coloring
+            let rowClass = "";
+            if(i.type === 'waste') rowClass = "row-waste";
+            else if(paidBy === 'Arjun') rowClass = "row-arjun";
+            else if(paidBy === 'Kotak Account') rowClass = "row-kotak";
+
+            hBody.innerHTML += `<tr class="${rowClass}">
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
-                <td style="white-space:nowrap">
-                    <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
-                    <span class="action-btn" onclick="del(${i.rowId})">🗑️</span>
-                </td>
+                <td>${paidBy.split(' ')[0]}</td>
+                <td><span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span></td>
             </tr>`;
         });
 
-        // Update stats
-        safeSet('row-count', db.length + " Records");
         safeSet('sales-total', '₹' + ts);
         safeSet('exp-total', '₹' + te);
         safeSet('net-profit', '₹' + (ts - te));
         safeSet('active-bags', actB);
+        safeSet('row-count', db.length + " Records");
 
-        // Update Ledger Card
         const ledSum = document.getElementById('ledger-summary');
         if(ledSum) {
-            let html = `<div style="margin-bottom:10px"><b>Losses</b></div>`;
-            for(let w in waste) { html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>${w}</span><span style="color:red">${waste[w]}</span></div>`; }
-            html += `<div style="margin:10px 0; border-top:1px solid #eee; padding-top:10px"><b>Staff Totals</b></div>`;
-            for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
+            let html = `<b>Staff Totals</b>`;
+            for(let w in workers) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${w}</span><b>₹${workers[w]}</b></div>`; }
+            html += `<hr><b>Expenses by Account</b>`;
+            for(let acc in accounts) { html += `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;"><span>${acc}</span><b>₹${accounts[acc]}</b></div>`; }
             ledSum.innerHTML = html;
         }
     }
 
-    // Modal & Crud Functions
-    function startEdit(id) {
-        let i = db.find(x => x.rowId == id);
-        if(!i) return;
-        document.getElementById('edit-id').value = i.rowId;
-        document.getElementById('edit-type').value = i.type;
-        document.getElementById('edit-date').value = (i.date||"").split('T')[0];
-        document.getElementById('edit-details').value = i.details;
-        document.getElementById('edit-amt').value = i.amt;
-        document.getElementById('edit-qty').value = i.qty;
-        document.getElementById('editModal').style.display = 'block';
-    }
-    function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
-    async function submitEdit() {
-        let p = { action:"edit", rowId: document.getElementById('edit-id').value, type: document.getElementById('edit-type').value, date: document.getElementById('edit-date').value, details: document.getElementById('edit-details').value, amt: document.getElementById('edit-amt').value, qty: document.getElementById('edit-qty').value, paidBy:"Bipin" };
-        safeSet('status', "⌛ Updating...");
-        await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
-        closeEdit(); setTimeout(load, 1500);
-    }
-    async function del(id) {
-        if(confirm("Delete this?")) {
-            safeSet('status', "⌛ Deleting...");
-            await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify({action:"delete", rowId:id})});
-            setTimeout(load, 1500);
-        }
-    }
     async function addData(type) {
-        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy:"Bipin" };
+        let p = { action:"add", type, date: new Date().toISOString().split('T')[0], details:"", amt:0, qty:0, paidBy: document.getElementById('acc-select').value };
         if(type==='fill'){ p.qty=document.getElementById('f-qty').value; p.details="Bags Filled"; }
         if(type==='yield'){ p.amt=document.getElementById('y-weight').value; p.details="Harvest"; }
         if(type==='waste'){ p.qty=document.getElementById('w-qty').value; p.details="Waste: " + document.getElementById('w-type').value; }
         if(type==='sale'){ p.qty=document.getElementById('s-qty').value; p.amt=p.qty*document.getElementById('s-rate').value; p.details="Sale: "+document.getElementById('s-cust').value; }
         if(type==='exp'){ p.details=document.getElementById('e-cat').value; p.amt=document.getElementById('e-amt').value; p.qty=document.getElementById('e-qty').value; }
+        
         safeSet('status', "⌛ Saving...");
         await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
         document.querySelectorAll('.top-content input').forEach(input => { if(input.id !== 'h-search') input.value = ''; });
         setTimeout(load, 1500);
     }
+
+    function startEdit(id) {
+        let i = db.find(x => x.rowId == id);
+        if(!i) return;
+        document.getElementById('edit-id').value = i.rowId;
+        document.getElementById('edit-type').value = i.type || 'exp'; // Preserve original type
+        document.getElementById('edit-date').value = (i.date||"").split('T')[0];
+        document.getElementById('edit-details').value = i.details;
+        document.getElementById('edit-amt').value = i.amt;
+        document.getElementById('edit-qty').value = i.qty;
+        document.getElementById('edit-paidBy').value = i.paidBy || "Bipin";
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
+
+    async function submitEdit() {
+        let p = { 
+            action:"edit", 
+            rowId: document.getElementById('edit-id').value, 
+            type: document.getElementById('edit-type').value, 
+            date: document.getElementById('edit-date').value, 
+            details: document.getElementById('edit-details').value, 
+            amt: document.getElementById('edit-amt').value, 
+            qty: document.getElementById('edit-qty').value, 
+            paidBy: document.getElementById('edit-paidBy').value 
+        };
+        safeSet('status', "⌛ Updating...");
+        await fetch(GOOGLE_URL, {method:'POST', mode:'no-cors', body:JSON.stringify(p)});
+        closeEdit(); setTimeout(load, 1500);
+    }
+
     function filterHistory() {
         let val = document.getElementById('h-search').value.toLowerCase();
         document.querySelectorAll('#h-body tr').forEach(r => { r.style.display = r.innerText.toLowerCase().includes(val) ? '' : 'none'; });

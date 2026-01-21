@@ -9,7 +9,8 @@
         body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); overflow-y: auto; }
         .header-status { background: white; padding: 12px; border-bottom: 1px solid #ddd; text-align: center; position: sticky; top: 0; z-index: 200; }
         .status-container { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 5px; }
-        .sync-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; }
+        .sync-btn { background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: transform 0.3s; }
+        .sync-btn:active { transform: rotate(180deg); }
         .main-container { padding: 10px 15px; }
         .tab-bar { display: flex; background: #eee; margin-bottom: 15px; border-radius: 10px; padding: 4px; }
         .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 12px; color: #666; }
@@ -18,13 +19,18 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; font-weight: bold; border: none; cursor: pointer; }
+        
+        /* Row Highlighting */
         .row-arjun { background-color: #e3f2fd !important; }
         .row-kotak { background-color: #fff9c4 !important; }
         .row-waste { background-color: #ffebee !important; color: var(--danger) !important; }
+
         .history-section { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
         .history-header { padding: 15px; background: #f8f9fa; border-radius: 12px 12px 0 0; border-bottom: 1px solid #eee; position: sticky; top: 75px; z-index: 150; }
+        .search-bar { padding: 10px 15px; border: 1px solid #ddd; border-radius: 20px; width: 100%; font-size: 14px; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
         td, th { padding: 12px 6px; border-bottom: 1px solid #eee; text-align: left; }
+        .action-btn { cursor: pointer; font-size: 16px; margin-right: 12px; display: inline-block; }
         #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
         .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
     </style>
@@ -33,8 +39,8 @@
 
 <div class="header-status">
     <div class="status-container">
-        <div id="status" style="font-size:10px; font-weight:bold; color: orange;">⌛ Connecting...</div>
-        <div class="sync-btn" onclick="load()">🔄</div>
+        <div id="status" style="font-size:11px; font-weight:bold; color: orange;">⌛ Connecting...</div>
+        <div class="sync-btn" onclick="load()" title="Sync Data">🔄</div>
     </div>
     <div class="grid" style="max-width: 400px; margin: 0 auto;">
         <div><small>Bags</small><div id="active-bags" style="font-weight:bold;">0</div></div>
@@ -126,7 +132,7 @@
 </div>
 
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbx84NAhMzcC5bz0-XyLoM-1a-QOOZDcQNVWdXT3EYt428BhwqcY5yWrXEDCV3LkMgEs/exec";
+    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwztQeAFStX4OhunUeOGKzgtdh3bMAoqh9DifIwK6aaSz5PybmtcIfcuYRROipUC4Mt/exec";
     let db = [];
 
     function safeSet(id, val) { const el = document.getElementById(id); if (el) el.innerText = val; }
@@ -136,15 +142,9 @@
         try {
             const r = await fetch(GOOGLE_URL + "?t=" + new Date().getTime());
             db = await r.json();
-            
-            // DEBUG: Show column names briefly
-            if(db.length > 0) {
-                const cols = Object.keys(db[0]).join(", ");
-                safeSet('status', "Cols: " + cols);
-                setTimeout(() => { safeSet('status', "✓ Connected"); document.getElementById('status').style.color = "var(--success)"; }, 5000);
-            }
-            
             render();
+            safeSet('status', "✓ Connected");
+            document.getElementById('status').style.color = "var(--success)";
         } catch(e) { safeSet('status', "⚠ Connection Error"); }
     }
 
@@ -162,25 +162,24 @@
             const detRaw = (i.details || "").toString();
             const rawTag = (i.type || "").toString().trim().toLowerCase();
 
-            // --- ULTIMATE SEARCH ---
-            // Scans EVERY property in the row for a name match
-            let foundName = "";
+            // --- FULL SCANNER ---
+            let rowWho = "";
             for (let key in i) {
-                let val = (i[key] || "").toString().toLowerCase();
-                if (val.includes("arjun")) { foundName = "Arjun"; break; }
-                if (val.includes("kotak")) { foundName = "Kotak"; break; }
-                if (val.includes("bipin")) { foundName = "Bipin"; break; }
+                let cellVal = (i[key] || "").toString().toLowerCase();
+                if (cellVal.includes("arjun")) { rowWho = "Arjun"; break; }
+                if (cellVal.includes("kotak")) { rowWho = "Kotak"; break; }
+                if (cellVal.includes("bipin")) { rowWho = "Bipin"; break; }
             }
             
             const isExp = (rawTag === 'exp' || detRaw.toLowerCase().startsWith('expense:'));
             let rowClass = "";
-            let tableBy = ""; 
+            let displayBy = ""; 
 
             if (isExp) {
                 te += v;
-                tableBy = foundName || "Bipin"; // Default to Bipin if no name found in ANY column
-                if (tableBy === "Arjun") { accounts["Arjun"] += v; rowClass = "row-arjun"; }
-                else if (tableBy === "Kotak") { accounts["Kotak Account"] += v; rowClass = "row-kotak"; }
+                displayBy = rowWho || "Bipin";
+                if (displayBy === "Arjun") { accounts["Arjun"] += v; rowClass = "row-arjun"; }
+                else if (displayBy === "Kotak") { accounts["Kotak Account"] += v; rowClass = "row-kotak"; }
                 else { accounts["Bipin"] += v; }
             }
 
@@ -197,7 +196,7 @@
                 <td>${(i.date||"").split('T')[0].substring(5)}</td>
                 <td>${detRaw}</td>
                 <td>${v || q}</td>
-                <td style="font-weight:bold;">${tableBy}</td> 
+                <td style="font-weight:bold;">${displayBy}</td> 
                 <td style="white-space:nowrap">
                     <span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span>
                     <span class="action-btn" onclick="delEntry(${i.rowId})">🗑️</span>

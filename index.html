@@ -5,279 +5,125 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oyster Farm Master Pro</title>
     <style>
-        :root {
-            --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; 
-            --dark: #2c3e50; --success: #27ae60; --forecast: #6c5ce7;
-        }
+        :root { --straw: #f1c40f; --spawn: #9b59b6; --yield: #2ecc71; --danger: #e74c3c; --dark: #2c3e50; --success: #27ae60; --forecast: #6c5ce7; }
         body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; color: var(--dark); padding-bottom: 30px; }
-        
-        .header-status { background: white; padding: 15px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
-        .forecast-banner { background: var(--forecast); color: white; padding: 12px; border-radius: 8px; margin: 10px 15px; }
-
-        .tab-bar { display: flex; background: #eee; margin: 0 15px 15px 15px; border-radius: 10px; padding: 4px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: none; font-weight: bold; font-size: 11px; cursor: pointer; border-radius: 8px; color: #666; }
+        .header-status { background: white; padding: 15px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; text-align: center; }
+        .forecast-banner { background: var(--forecast); color: white; padding: 12px; border-radius: 8px; margin: 10px 15px; font-size: 13px; }
+        .tab-bar { display: flex; background: #eee; margin: 15px; border-radius: 10px; padding: 4px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: bold; cursor: pointer; border-radius: 8px; font-size: 11px; color: #666; }
         .tab-btn.active { background: white; color: var(--dark); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-
         .container { padding: 0 15px; }
         .card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .val { font-size: 1.1rem; font-weight: bold; display: block; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
         button { background: var(--dark); color: white; border: none; font-weight: bold; cursor: pointer; }
-        
         .stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        .stock-item { padding: 6px; border-radius: 6px; background: #f8f9fa; border-left: 3px solid #ddd; font-size: 10px; line-height: 1.2; }
+        .stock-item { padding: 8px; border-radius: 6px; background: #f8f9fa; border-left: 3px solid #ddd; font-size: 10px; line-height: 1.2; }
         .low-stock { border-left-color: var(--danger); background: #fff1f1; }
-        
         table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        td { padding: 10px 4px; border-bottom: 1px solid #eee; }
-        th { text-align: left; padding: 8px 4px; border-bottom: 2px solid #eee; color: #888; background: #fcfcfc; }
-        .sync-status { font-size: 10px; text-align: center; color: var(--success); margin-bottom: 5px; cursor: pointer; }
-        
-        #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; }
-        .modal-content { background:white; margin:10% auto; padding:20px; width:80%; border-radius:12px; }
+        td, th { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: left; }
         .action-btn { font-size: 16px; cursor: pointer; padding: 0 5px; }
-        #history-search { background: #f0f2f5; border: none; padding: 8px 12px; margin-bottom: 10px; font-size: 12px; }
+        #editModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; }
+        .modal-content { background:white; margin:15% auto; padding:20px; width:85%; border-radius:12px; }
+        .ledger-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #eee; font-size: 12px; }
     </style>
 </head>
 <body>
 
-    <div class="header-status">
-        <div id="status" class="sync-status" onclick="alertDebug()">✓ Connected</div>
-        <div class="grid" style="text-align: center;">
-            <div><small>Active Bags</small><div id="active-bags" class="val">0</div></div>
-            <div><small>Avg Yield/Bag</small><div id="yield-bag" class="val" style="color:var(--success)">0 kg</div></div>
-        </div>
+<div class="header-status">
+    <div id="status" style="font-size:10px; color: var(--success); margin-bottom:5px;">✓ Connected</div>
+    <div class="grid">
+        <div><small>Active Bags</small><div id="active-bags" style="font-weight:bold; font-size:1.1rem;">0</div></div>
+        <div><small>Avg Yield/Bag</small><div id="yield-bag" style="font-weight:bold; font-size:1.1rem; color:var(--success)">0 kg</div></div>
     </div>
+</div>
 
-    <div class="forecast-banner">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size: 12px; font-weight:bold;">🔮 10-DAY FORECAST:</span>
-            <span id="fc-yield" style="font-weight:bold;">0 kg</span>
-        </div>
-        <div id="fc-msg" style="font-size: 10px; margin-top: 4px; opacity: 0.9;">Calculating...</div>
-    </div>
+<div class="forecast-banner">
+    <b>🔮 10-DAY FORECAST: <span id="fc-yield">0 kg</span></b>
+    <div id="fc-msg" style="font-size:10px; opacity:0.9; margin-top:3px;">Based on your last 28 days of production.</div>
+</div>
 
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="openTab(event, 'tab-fill')">BAG FILLING</button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-harvest')">HARVEST/LOSS</button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-finance')">CASH LOG</button>
-    </div>
+<div class="tab-bar">
+    <button class="tab-btn active" onclick="openTab(event, 'tab-prod')">PRODUCTION</button>
+    <button class="tab-btn" onclick="openTab(event, 'tab-fin')">FINANCE</button>
+    <button class="tab-btn" onclick="openTab(event, 'tab-hist')">HISTORY</button>
+</div>
 
-    <div class="container">
-        <div id="tab-fill" class="tab-content active">
-            <div class="card">
-                <h2 style="font-size:0.9rem; margin-top:0;">🛠 Log New Bags</h2>
-                <input type="number" id="f-qty" placeholder="Number of bags filled">
-                <button style="background:#1abc9c" onclick="addData('fill')">Save Production</button>
-            </div>
-        </div>
-
-        <div id="tab-harvest" class="tab-content">
-            <div class="card">
-                <h2 style="font-size:0.9rem; margin-top:0;">🍄 Harvest & Waste</h2>
-                <input type="number" step="0.1" id="y-weight" placeholder="Harvest Weight (kg)">
-                <button style="background:var(--yield)" onclick="addData('yield')">Save Harvest</button>
-                <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
-                <select id="w-type"><option value="Contaminated Bag">Contaminated Bag (Qty)</option><option value="Mushroom Waste">Mushroom Waste (kg)</option></select>
-                <input type="number" step="0.1" id="w-val" placeholder="Value">
-                <button style="background:var(--danger)" onclick="addData('waste')">Log Loss</button>
-            </div>
-        </div>
-
-        <div id="tab-finance" class="tab-content">
-            <div class="card grid" style="text-align:center;">
-                <div><small>Sales</small><div id="sales-total" class="val" style="color:var(--success)">₹0</div></div>
-                <div><small>Expenses</small><div id="exp-total" class="val" style="color:var(--danger)">₹0</div></div>
-            </div>
-            <div class="card">
-                <select id="fin-type" onchange="toggleFinanceView(this.value)">
-                    <option value="sale">Record Sale</option>
-                    <option value="exp">Record Expense</option>
-                </select>
-                <div id="f-sale"><input type="text" id="s-cust" placeholder="Customer Name"><input type="number" id="s-qty" placeholder="Punnets Sold"><input type="number" id="s-price" placeholder="Rate per Punnet"><button style="background:var(--success)" onclick="addData('sale')">Record Sale</button></div>
-                <div id="f-exp" style="display:none"><select id="e-cat"><option value="Straw">Straw</option><option value="Spawn">Spawn</option><option value="Punnets">Punnets</option><option value="Labor">Labor</option><option value="Misc">Misc</option></select><input type="number" id="e-amt" placeholder="Total Cost (₹)"><input type="number" id="e-qty" placeholder="Quantity Purchased"><button style="background:var(--danger)" onclick="addData('exp')">Record Expense</button></div>
-            </div>
-        </div>
-
+<div class="container">
+    <div id="tab-prod" class="tab-content">
         <div class="card">
-            <h2 style="font-size:0.9rem; margin:0 0 10px 0;">📦 Stock Runway</h2>
+            <h3 style="margin-top:0; font-size:14px;">🛠 Log Production</h3>
+            <input type="number" id="f-qty" placeholder="Number of bags filled">
+            <button onclick="addData('fill')" style="background:#1abc9c">Save Production</button>
+            <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+            <input type="number" step="0.1" id="y-weight" placeholder="Harvest Weight (kg)">
+            <button onclick="addData('yield')" style="background:var(--yield)">Save Harvest</button>
+        </div>
+        <div class="card">
+            <h3 style="margin:0 0 10px 0; font-size:14px;">📦 Stock Runway</h3>
             <div id="stock-display" class="stock-grid"></div>
         </div>
+    </div>
 
+    <div id="tab-fin" class="tab-content" style="display:none;">
+        <div class="card grid" style="text-align:center;">
+            <div><small>Total Sales</small><div id="sales-total" style="color:var(--success); font-weight:bold; font-size:1.1rem;">₹0</div></div>
+            <div><small>Total Expenses</small><div id="exp-total" style="color:var(--danger); font-weight:bold; font-size:1.1rem;">₹0</div></div>
+        </div>
         <div class="card">
-            <h2 style="font-size:0.9rem; margin:0 0 10px 0;">📜 Complete History</h2>
-            <input type="text" id="history-search" placeholder="🔍 Search History..." onkeyup="filterHistory()">
-            <div style="max-height:450px; overflow-y:auto; border: 1px solid #eee; border-radius: 8px;">
-                <table id="history-table">
-                    <thead><tr><th>Date</th><th>Detail</th><th>Qty/Amt</th><th>Action</th></tr></thead>
-                    <tbody id="history-body"></tbody>
+            <select id="fin-type" onchange="toggleFin(this.value)">
+                <option value="sale">Record New Sale</option>
+                <option value="exp">Record New Expense</option>
+            </select>
+            <div id="div-sale">
+                <input type="text" id="s-cust" placeholder="Customer Name">
+                <input type="number" id="s-qty" placeholder="Punnets Sold">
+                <input type="number" id="s-rate" placeholder="Rate per punnet (₹)">
+                <button onclick="addData('sale')" style="background:var(--success)">Save Sale</button>
+            </div>
+            <div id="div-exp" style="display:none;">
+                <select id="e-cat">
+                    <optgroup label="Raw Materials">
+                        <option value="Straw">Straw (kg)</option>
+                        <option value="Spawn">Spawn (kg)</option>
+                        <option value="Bavistine">Bavistine (g)</option>
+                        <option value="Formalin">Formalin (ml)</option>
+                        <option value="Punnets">Punnets (pcs)</option>
+                    </optgroup>
+                    <optgroup label="Staff Payments">
+                        <option value="Worker: Pallavi Mavshi">Pallavi Mavshi</option>
+                        <option value="Worker: Bhabhi">Bhabhi</option>
+                        <option value="Worker: Sangeeta Mavshi">Sangeeta Mavshi</option>
+                        <option value="Labor: General">General Labor</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="Transport">Transport</option>
+                        <option value="Misc">Misc</option>
+                    </optgroup>
+                </select>
+                <input type="number" id="e-amt" placeholder="Total Amount (₹)">
+                <input type="number" id="e-qty" placeholder="Quantity (kg/g/pcs)">
+                <button onclick="addData('exp')" style="background:var(--danger)">Save Expense</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3 style="margin:0 0 10px 0; font-size:14px;">👩‍🌾 Staff Payment Ledger</h3>
+            <div id="worker-list"></div>
+        </div>
+    </div>
+
+    <div id="tab-hist" class="tab-content" style="display:none;">
+        <div class="card">
+            <input type="text" id="h-search" placeholder="🔍 Search History..." onkeyup="filterHistory()">
+            <div style="max-height:400px; overflow-y:auto;">
+                <table>
+                    <thead><tr><th>Date</th><th>Detail</th><th>Amt/Qty</th><th>Action</th></tr></thead>
+                    <tbody id="h-body"></tbody>
                 </table>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="editModal">
-        <div class="modal-content">
-            <h3 style="margin-top:0">✏️ Edit Entry</h3>
-            <input type="hidden" id="edit-id"><input type="hidden" id="edit-type">
-            <label><small>Date</small></label><input type="date" id="edit-date">
-            <label><small>Details</small></label><input type="text" id="edit-details">
-            <label><small>Amount</small></label><input type="number" step="0.1" id="edit-amt">
-            <label><small>Quantity</small></label><input type="number" step="0.1" id="edit-qty">
-            <div class="grid"><button onclick="closeEdit()">Cancel</button><button style="background:var(--success)" onclick="submitEdit()">Save Changes</button></div>
-        </div>
-    </div>
-
-    <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwnDjr52SAikps_kDZ-xe58hXfnPUYdRhVI4lbf1k_2d45CxR7-HrgC37CfEeVM4h_S/exec"; 
-        let dbMaster = [];
-        let lastError = "None";
-        let dailyUsage = { "Straw": 15, "Spawn": 1.2, "Bavistine": 0.05, "Formalin": 0.1, "PP Bags": 0.2, "Rubber Bands": 20, "Punnets": 10 };
-        const safeNum = (val) => isNaN(parseFloat(val)) ? 0 : parseFloat(val);
-
-        function alertDebug() { alert("Debug Info:\nURL: " + GOOGLE_SCRIPT_URL + "\nLast Error: " + lastError); }
-
-        function openTab(evt, tN) {
-            let tc = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < tc.length; i++) tc[i].style.display = "none";
-            let tb = document.getElementsByClassName("tab-btn");
-            for (let i = 0; i < tb.length; i++) tb[i].className = tb[i].className.replace(" active", "");
-            document.getElementById(tN).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
-
-        function toggleFinanceView(val) {
-            document.getElementById('f-sale').style.display = val === 'sale' ? 'block' : 'none';
-            document.getElementById('f-exp').style.display = val === 'exp' ? 'block' : 'none';
-        }
-
-        async function loadCloudData() {
-            document.getElementById('status').innerText = "⌛ Syncing...";
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                if (!response.ok) throw new Error("HTTP Error " + response.status);
-                dbMaster = await response.json();
-                renderAll();
-                document.getElementById('status').innerText = "✓ Connected";
-                document.getElementById('status').style.color = "var(--success)";
-            } catch (e) { 
-                lastError = e.message;
-                document.getElementById('status').innerText = "⚠ Offline (Click for details)";
-                document.getElementById('status').style.color = "var(--danger)";
-            }
-        }
-
-        async function addData(type) {
-            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
-            let payload = { action: "add", type, date: today, details: "", amt: 0, qty: 0, paidBy: "Bipin" };
-            if (type === 'fill') { payload.qty = safeNum(document.getElementById('f-qty').value); payload.details = "Bags Filled"; }
-            else if (type === 'exp') { payload.details = document.getElementById('e-cat').value; payload.amt = safeNum(document.getElementById('e-amt').value); payload.qty = safeNum(document.getElementById('e-qty').value); }
-            else if (type === 'sale') { const q = safeNum(document.getElementById('s-qty').value); payload.amt = q * safeNum(document.getElementById('s-price').value); payload.qty = q; payload.details = "Sale: " + (document.getElementById('s-cust').value || "Retail"); }
-            else if (type === 'yield') { payload.amt = safeNum(document.getElementById('y-weight').value); payload.details = "Harvest"; }
-            else if (type === 'waste') { payload.amt = safeNum(document.getElementById('w-val').value); payload.details = "Waste: " + document.getElementById('w-type').value; }
-
-            document.getElementById('status').innerText = "⌛ Saving...";
-            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            setTimeout(loadCloudData, 1500);
-            ['f-qty', 'y-weight', 'w-val', 's-cust', 's-qty', 's-price', 'e-amt', 'e-qty'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
-        }
-
-        function startEdit(id) {
-            const item = dbMaster.find(i => i.rowId === id);
-            document.getElementById('edit-id').value = item.rowId;
-            document.getElementById('edit-type').value = item.type;
-            document.getElementById('edit-date').value = (item.date || "").split('T')[0];
-            document.getElementById('edit-details').value = item.details;
-            document.getElementById('edit-amt').value = item.amt;
-            document.getElementById('edit-qty').value = item.qty;
-            document.getElementById('editModal').style.display = 'block';
-        }
-        function closeEdit() { document.getElementById('editModal').style.display = 'none'; }
-
-        async function submitEdit() {
-            const payload = {
-                action: "edit",
-                rowId: parseInt(document.getElementById('edit-id').value),
-                date: document.getElementById('edit-date').value,
-                type: document.getElementById('edit-type').value,
-                details: document.getElementById('edit-details').value,
-                amt: safeNum(document.getElementById('edit-amt').value),
-                qty: safeNum(document.getElementById('edit-qty').value),
-                paidBy: "Bipin"
-            };
-            closeEdit();
-            document.getElementById('status').innerText = "⌛ Updating...";
-            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            setTimeout(loadCloudData, 1500);
-        }
-
-        async function deleteRow(id) {
-            if(!confirm("Permanently delete this entry?")) return;
-            document.getElementById('status').innerText = "⌛ Deleting...";
-            await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", rowId: id }) });
-            setTimeout(loadCloudData, 1500);
-        }
-
-        function filterHistory() {
-            let input = document.getElementById("history-search").value.toLowerCase();
-            let rows = document.getElementById("history-body").getElementsByTagName("tr");
-            for (let i = 0; i < rows.length; i++) {
-                let text = rows[i].textContent.toLowerCase();
-                rows[i].style.display = text.includes(input) ? "" : "none";
-            }
-        }
-
-        function renderAll() {
-            let s = { "Straw": 0, "Spawn": 0, "Bavistine": 0, "Formalin": 0, "PP Bags": 0, "Rubber Bands": 0, "Punnets": 0 };
-            let activeB = 0, forecastY = 0, totalF = 0, totalY = 0, wastedB = 0;
-            const now = new Date();
-            const thirtyAgo = new Date(); thirtyAgo.setDate(now.getDate() - 30);
-
-            dbMaster.forEach(i => {
-                const v = safeNum(i.amt); const q = safeNum(i.qty);
-                const iD = new Date(i.date);
-                if (i.type === 'exp' && s.hasOwnProperty(i.details)) s[i.details] += q;
-                if (i.type === 'fill') {
-                    totalF += q; if(iD >= thirtyAgo) activeB += q;
-                    s["Straw"] -= (q * 1.5); s["Spawn"] -= (q * 0.12); s["Rubber Bands"] -= (q * 2);
-                    const age = (now - iD) / 86400000;
-                    if (age >= 12 && age <= 28) forecastY += (q * 0.6);
-                }
-                if (i.type === 'yield') { s["Punnets"] -= (v * 5); totalY += v; }
-                if (i.type === 'waste' && i.details.includes("Contaminated")) {
-                    wastedB += v; if(iD >= thirtyAgo) activeB -= v;
-                    forecastY -= (v * 0.6);
-                    s["Straw"] -= (v * 1.5); s["Spawn"] -= (v * 0.12); s["Rubber Bands"] -= (v * 2);
-                }
-            });
-
-            document.getElementById('active-bags').innerText = Math.max(0, activeB);
-            document.getElementById('yield-bag').innerText = (totalF > 0 ? (totalY/(totalF-wastedB||1)).toFixed(2) : 0) + ' kg';
-            document.getElementById('fc-yield').innerText = Math.max(0, forecastY).toFixed(1) + " kg";
-            
-            const sD = document.getElementById('stock-display'); sD.innerHTML = '';
-            for(let k in s) {
-                const run = Math.floor(s[k] / (dailyUsage[k] || 1));
-                sD.innerHTML += `<div class="stock-item ${run < 3 ? 'low-stock' : ''}"><b>${k}</b><br>${s[k].toFixed(1)}<br>${run < 0 ? 'Empty' : run + 'd'}</div>`;
-            }
-
-            const hb = document.getElementById('history-body'); hb.innerHTML = '';
-            let te = 0, ts = 0;
-            dbMaster.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
-                if(i.type === 'exp') te += safeNum(i.amt); if(i.type === 'sale') ts += safeNum(i.amt);
-                const valStr = (i.type === 'exp' || i.type === 'sale') ? '₹'+(i.amt || 0) : (i.qty || i.amt);
-                hb.innerHTML += `<tr><td>${(i.date || "").split('T')[0]}</td><td>${i.details}</td><td>${valStr}</td>
-                <td><span class="action-btn" onclick="startEdit(${i.rowId})">✏️</span> <span class="action-btn" onclick="deleteRow(${i.rowId})">🗑️</span></td></tr>`;
-            });
-            document.getElementById('exp-total').innerText = '₹' + te;
-            document.getElementById('sales-total').innerText = '₹' + ts;
-        }
-
-        window.onload = loadCloudData;
-    </script>
-</body>
-</html>
+<div id="editModal">
+    <div class="modal-content">
